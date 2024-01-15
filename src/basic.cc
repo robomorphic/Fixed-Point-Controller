@@ -35,6 +35,7 @@ bool button_right =  false;
 double lastx = 0;
 double lasty = 0;
 
+#define ARR_PRINT(vec, size) printf(#vec ": "); for(int i = 0; i < size; i++) printf("%f ", vec[i]); printf("\n");
 
 // keyboard callback
 void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods) {
@@ -44,7 +45,6 @@ void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods) {
     mj_forward(m, d);
   }
 }
-
 
 // mouse button callback
 void mouse_button(GLFWwindow* window, int button, int act, int mods) {
@@ -57,22 +57,43 @@ void mouse_button(GLFWwindow* window, int button, int act, int mods) {
   glfwGetCursorPos(window, &lastx, &lasty);
 }
 
-// simple controller applying damping to each dof
-void mycontroller(const mjModel* m, mjData* d)
-{
+// home is qpos="0 0 0 -1.57079 0 1.57079 -0.7853"
+double home_pos[] = {0, 0, 0, -1.57079, 0, 1.57079, -0.7853};
+double fixed_pos[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442, 0.8786033292295339};
+
+// simple controller
+void mycontroller(const mjModel* m, mjData* d){
     printf("time: %f\n", d->time);
     printf("nu: %d\n", m->nu);
     printf("nv: %d\n", m->nv);
-    if( m->nu==m->nv ){
-        d->ctrl[2] = 1;
-        printf("qvel: %f\n", d->qvel[0]);
-    } // else take the first 8 elements of nv
-    else{
-        //d->qvel[4] = 0.1;
-        d->ctrl[4] = -0.1;
-        printf("qvell: %f\n", d->qvel[0]);
+    //if( m->nu==m->nv ){
+    // 1. Compute the error
+    double error[7] = {0};
+    //auto error = std::vector<double>(m->nv);
+    for(int i = 0; i < m->nv; i++){
+        error[i] = fixed_pos[i] - d->qpos[i];
+    }
+    // 2. Compute the control input
+    double ctrl[7] = {0};
+    //auto ctrl = std::vector<double>(m->nu);
+    for(int i = 0; i < m->nu; i++){
+        ctrl[i] = 100 * error[i];
+    }
+    // 3. Apply the control input
+    for(int i = 0; i < m->nu; i++){
+        d->ctrl[i] = ctrl[i];
     }
 
+    /*
+    printf("actuator_limits: \n");
+    for(int i = 0; i < m->nu; i++){
+        printf("%f %f\n", m->actuator_ctrlrange[2*i], m->actuator_ctrlrange[2*i+1]);
+    }
+    printf("force_limits: \n");
+    for(int i = 0; i < m->nu; i++){
+        printf("%f %f\n", m->actuator_forcerange[2*i], m->actuator_forcerange[2*i+1]);
+    }
+    */
 }
 
 // install control callback
@@ -179,10 +200,10 @@ int main(int argc, const char** argv) {
         //  Otherwise add a cpu timer and exit this loop when it is time to render.
         mjtNum simstart = d->time;
         while (d->time - simstart < 1.0/60.0) {
-        //mj_step1(m, d);
-        //mycontroller(m, d);
-        //mj_step2(m, d);
-        mj_step(m, d);
+            ARR_PRINT(d->ctrl, m->nu);
+            mj_step(m, d);
+            // print the control input
+            ARR_PRINT(d->ctrl, m->nu);
         }
 
         // get framebuffer viewport

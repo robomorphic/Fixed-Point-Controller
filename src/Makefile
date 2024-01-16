@@ -15,6 +15,7 @@ all:
 	clang++ $(ALLFLAGS)    testspeed.cc  -framework mujoco        -o testspeed
 	clang++ $(ALLFLAGS)    compile.cc    -framework mujoco        -o compile
 	clang++ $(ALLFLAGS)    basic.cc      -framework mujoco -lglfw -o basic
+	clang++ $(ALLFLAGS)    basic_gravity.cc -framework mujoco -lglfw -o basic_gravity $(shell pkg-config --cflags --libs pinocchio)
 	clang++ $(ALLFLAGS)    record.cc     -framework mujoco -lglfw -o record
 	clang++ $(ALLFLAGS)    hello.cc     -framework mujoco -lglfw -o hello
 

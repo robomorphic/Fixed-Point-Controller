@@ -18,6 +18,8 @@
 #include <GLFW/glfw3.h>
 #include <mujoco/mujoco.h>
 
+#include <iostream>
+
 MJAPI extern mjfGeneric mjcb_control;
 
 // MuJoCo data structures
@@ -94,6 +96,37 @@ void mycontroller(const mjModel* m, mjData* d){
         printf("%f %f\n", m->actuator_forcerange[2*i], m->actuator_forcerange[2*i+1]);
     }
     */
+}
+
+void my_controller_PD(const mjModel* m, mjData* d){
+    double error[7] = {0};
+    double prev_error[7] = {0};
+    double kp = 10; // Proportional gain
+    double kd = 300;  // Derivative gain
+
+    // 1. Compute the error
+    for(int i = 0; i < m->nv; i++){
+        error[i] = fixed_pos[i] - d->qpos[i];
+    }
+
+    // 2. Compute the control input using PD controller
+    double ctrl[7] = {0};
+    for(int i = 0; i < m->nu; i++){
+        ctrl[i] = kp * error[i] + kd * (error[i] - prev_error[i]);
+    }
+
+    // 3. Apply the control input
+    for(int i = 0; i < m->nu; i++){
+        d->ctrl[i] = ctrl[i];
+    }
+
+    // Update previous error for the next iteration
+    for(int i = 0; i < m->nv; i++){
+        prev_error[i] = error[i];
+    }
+
+    ARR_PRINT(error, 7)
+
 }
 
 // install control callback
@@ -190,7 +223,7 @@ int main(int argc, const char** argv) {
     glfwSetMouseButtonCallback(window, mouse_button);
     glfwSetScrollCallback(window, scroll);
 
-    mjcb_control = mycontroller;
+    mjcb_control = my_controller_PD;
 
     // run main loop, target real-time simulation and 60 fps rendering
     while (!glfwWindowShouldClose(window)) {

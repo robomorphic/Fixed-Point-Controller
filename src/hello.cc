@@ -8,7 +8,7 @@ mjData* d;
 int main(void)
 {
    // load model from file and check for errors
-   m = mj_loadXML("../../mujoco_menagerie/franka_emika_panda/scene.xml", NULL, error, 1000);
+   m = mj_loadXML("../../mujoco_menagerie/franka_emika_panda/panda_nohand.xml", NULL, error, 1000);
    if( !m )
    {
       printf("%s\n", error);

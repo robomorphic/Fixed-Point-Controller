@@ -28,21 +28,16 @@
 #include "pinocchio/algorithm/aba-derivatives.hpp"
 #include "pinocchio/algorithm/rnea.hpp"
 #include "pinocchio/algorithm/jacobian.hpp"
+#include "pinocchio/algorithm/rnea-derivatives.hpp"
+#include "pinocchio/algorithm/aba-derivatives.hpp"
  
 
 const std::string urdf_filename = std::string("../models/panda.urdf");
 
 // Load the urdf model
 pinocchio::Model model;
-
-
 // Create data required by the algorithms
 pinocchio::Data data;
-
-// Allocate result container
-Eigen::MatrixXd djoint_acc_dq = Eigen::MatrixXd::Zero(model.nv,model.nv);
-Eigen::MatrixXd djoint_acc_dv = Eigen::MatrixXd::Zero(model.nv,model.nv);
-Eigen::MatrixXd djoint_acc_dtau = Eigen::MatrixXd::Zero(model.nv,model.nv);
 
 
 MJAPI extern mjfGeneric mjcb_control;
@@ -165,8 +160,13 @@ void my_controller_PD(const mjModel* m, mjData* d){
         prev_error[i] = error[i];
     }
 
+    // let's benchmark this part, get time
+    //auto start = std::chrono::high_resolution_clock::now();
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
     auto dynamic_drift = pinocchio::rnea(model, data, q, qvel, qacc);
+    auto end = std::chrono::high_resolution_clock::now();
+    //std::chrono::duration<double> elapsed = end - start;
+    //std::cout << "pinocchio rnea took " << elapsed.count() << " seconds" << std::endl;
     std::cout << "dynamic drift: " << std::endl;
     std::cout << dynamic_drift << std::endl;
 
@@ -174,6 +174,20 @@ void my_controller_PD(const mjModel* m, mjData* d){
     for(int i = 0; i < model.nv; i++){
         d->ctrl[i] += dynamic_drift[i];
     }
+
+    // how to compute A and B matrices?
+    // A = djoint_acc_dq
+    // B = djoint_acc_dtau
+    //pinocchio::computeRNEADerivatives(model, data, q, qvel, qacc);
+    pinocchio::computeABADerivatives(model, data, q, qvel, qacc);
+    std::cout << "A: " << std::endl;
+    std::cout << data.ddq_dq << std::endl;
+    // calculate B
+    std::cout << "Minv: " << std::endl;
+    std::cout << data.Minv << std::endl;
+    
+
+
 
     ARR_PRINT(error, 7)
 

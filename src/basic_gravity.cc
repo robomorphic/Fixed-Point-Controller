@@ -27,6 +27,7 @@
 
 #include "pinocchio/algorithm/aba-derivatives.hpp"
 #include "pinocchio/algorithm/rnea.hpp"
+#include "pinocchio/algorithm/jacobian.hpp"
  
 
 const std::string urdf_filename = std::string("../models/panda.urdf");
@@ -132,12 +133,20 @@ void my_controller_PD(const mjModel* m, mjData* d){
 
     Eigen::VectorXd q;
     q.resize(model.nv);
-    //auto q = d->qpos;
+    Eigen::VectorXd qvel;
+    qvel.resize(model.nv);
+    Eigen::VectorXd qacc;
+    qacc.resize(model.nv);
+    // now assign d->qvel to qdot
+    for(int i = 0; i < model.nv; i++){
+        q[i] = d->qpos[i];
+        qvel[i] = d->qvel[i];
+        qacc[i] = d->qacc[i];
+    }
 
     // 1. Compute the error
     for(int i = 0; i < m->nv; i++){
         error[i] = fixed_pos[i] - d->qpos[i];
-        q(i) = d->qpos[i];
     }
 
     // 2. Compute the control input using PD controller
@@ -156,21 +165,19 @@ void my_controller_PD(const mjModel* m, mjData* d){
         prev_error[i] = error[i];
     }
 
-    computeGeneralizedGravity(model, data, q);
-    
-    auto gravity = data.g.transpose();
+    // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
+    auto dynamic_drift = pinocchio::rnea(model, data, q, qvel, qacc);
+    std::cout << "dynamic drift: " << std::endl;
+    std::cout << dynamic_drift << std::endl;
 
-    for(int i = 0; i < m->nu; i++){
-        d->ctrl[i] += gravity[i];
+    // apply the dynamic drift to the control input
+    for(int i = 0; i < model.nv; i++){
+        d->ctrl[i] += dynamic_drift[i];
     }
-    
 
     ARR_PRINT(error, 7)
 
 }
-
-// install control callback
-//mjfGeneric mjcb_control = mycontroller;
 
 // mouse move callback
 void mouse_move(GLFWwindow* window, double xpos, double ypos) {

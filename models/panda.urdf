@@ -274,7 +274,7 @@
     <parent link="panda_link7"/>
     <child link="panda_link7_sc"/>
   </joint>
-  <joint name="panda_joint7" type="revolute">
+  <joint name="panda_joint7" type="fixed">
     <origin rpy="1.5707963267948966 0 0" xyz="0.088 0 0"/>
     <parent link="panda_link6"/>
     <child link="panda_link7"/>
@@ -373,19 +373,6 @@
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     </actuator>
   </transmission>
-  <gazebo reference="panda_joint7">
-    <!-- Needed for ODE to output external wrenches on joints -->
-    <provideFeedback>true</provideFeedback>
-  </gazebo>
-  <transmission name="panda_joint7_transmission">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="panda_joint7">
-      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="panda_joint7_motor">
-      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-    </actuator>
-  </transmission>
   <gazebo reference="panda_joint1">
     <!-- Needed for ODE to output external wrenches on joints -->
     <provideFeedback>true</provideFeedback>
@@ -464,19 +451,6 @@
       <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
     </actuator>
   </transmission>
-  <gazebo reference="panda_joint7">
-    <!-- Needed for ODE to output external wrenches on joints -->
-    <provideFeedback>true</provideFeedback>
-  </gazebo>
-  <transmission name="panda_joint7_transmission">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="panda_joint7">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="panda_joint7_motor">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </actuator>
-  </transmission>
   <gazebo reference="panda_joint1">
     <!-- Needed for ODE to output external wrenches on joints -->
     <provideFeedback>true</provideFeedback>
@@ -552,19 +526,6 @@
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
     </joint>
     <actuator name="panda_joint6_motor">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-    </actuator>
-  </transmission>
-  <gazebo reference="panda_joint7">
-    <!-- Needed for ODE to output external wrenches on joints -->
-    <provideFeedback>true</provideFeedback>
-  </gazebo>
-  <transmission name="panda_joint7_transmission">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="panda_joint7">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="panda_joint7_motor">
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
     </actuator>
   </transmission>
@@ -588,9 +549,6 @@
     <joint name="panda_joint6">
       <hardwareInterface>franka_hw/FrankaStateInterface</hardwareInterface>
     </joint>
-    <joint name="panda_joint7">
-      <hardwareInterface>franka_hw/FrankaStateInterface</hardwareInterface>
-    </joint>
     <actuator name="panda_motor1">
       <hardwareInterface>franka_hw/FrankaStateInterface</hardwareInterface>
     </actuator>
@@ -607,9 +565,6 @@
       <hardwareInterface>franka_hw/FrankaStateInterface</hardwareInterface>
     </actuator>
     <actuator name="panda_motor6">
-      <hardwareInterface>franka_hw/FrankaStateInterface</hardwareInterface>
-    </actuator>
-    <actuator name="panda_motor7">
       <hardwareInterface>franka_hw/FrankaStateInterface</hardwareInterface>
     </actuator>
   </transmission>

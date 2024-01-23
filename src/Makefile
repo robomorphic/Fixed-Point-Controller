@@ -8,7 +8,8 @@ MUJOCOPATH?=/Applications/MuJoCo.app/Contents/Frameworks
 
 CFLAGS=-O2 -F$(MUJOCOPATH) -I$(GLFWROOT)/include -pthread
 CXXFLAGS=$(CFLAGS) -std=c++17 -stdlib=libc++
-ALLFLAGS=$(CXXFLAGS) -L$(GLFWROOT)/lib -Wl,-rpath,$(MUJOCOPATH)
+OSQPFLAGS= -losqp
+ALLFLAGS=$(CXXFLAGS) -L$(GLFWROOT)/lib -Wl,-rpath,$(MUJOCOPATH) $(OSQPFLAGS) -rpath /usr/local/lib
 
 .PHONY: all
 all:

@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include "osqp/osqp.h"
+
 #include <typeinfo>
 #include <cstdio>
 #include <cstring>
@@ -30,7 +32,9 @@
 #include "pinocchio/algorithm/jacobian.hpp"
 #include "pinocchio/algorithm/rnea-derivatives.hpp"
 #include "pinocchio/algorithm/aba-derivatives.hpp"
+
  
+
 
 const std::string urdf_filename = std::string("../models/panda.urdf");
 
@@ -185,6 +189,189 @@ void my_controller_PD(const mjModel* m, mjData* d){
     // calculate B
     std::cout << "Minv: " << std::endl;
     std::cout << data.Minv << std::endl;
+
+    ARR_PRINT(error, 7)
+
+}
+
+void my_controller_QP(const mjModel* m, mjData* d){
+    double error[7] = {0};
+    double prev_error[7] = {0};
+    double kp = 1; // Proportional gain
+    double kd = 1;  // Derivative gain
+
+    Eigen::VectorXd q;
+    q.resize(model.nv);
+    Eigen::VectorXd qvel;
+    qvel.resize(model.nv);
+    Eigen::VectorXd qacc;
+    qacc.resize(model.nv);
+    // now assign d->qvel to qdot
+    for(int i = 0; i < model.nv; i++){
+        q[i] = d->qpos[i];
+        qvel[i] = d->qvel[i];
+        qacc[i] = d->qacc[i];
+    }
+
+    // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
+    auto dynamic_drift = pinocchio::rnea(model, data, q, qvel, qacc);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout << "dynamic drift: " << std::endl;
+    std::cout << dynamic_drift << std::endl;
+
+    // apply the dynamic drift to the control input
+    for(int i = 0; i < model.nv; i++){
+        d->ctrl[i] += dynamic_drift[i];
+    }
+
+    // how to compute A and B matrices?
+    pinocchio::computeABADerivatives(model, data, q, qvel, qacc);
+    std::cout << "A: " << std::endl;
+    std::cout << data.ddq_dq << std::endl;
+    // calculate B
+    std::cout << "Minv: " << std::endl;
+    std::cout << data.Minv << std::endl;
+
+    OSQPSettings settings;
+    osqp_set_default_settings(&settings);
+    settings.verbose = true;
+    settings.max_iter = 1000;
+    std::cout << "Set up OSQP settings" << std::endl;
+    
+    // Populate matrices for a QP controller
+    // min error * Q * error
+    // s.t. x_dot = A * x + B * u
+    
+    // Q = I
+    Eigen::MatrixXd Q(model.nv*2, model.nv*2);
+    //Q.resize(model.nv, model.nv);
+    Q.setIdentity();
+    std::cout << "Set up Q matrix" << std::endl;
+
+    // A = [0 1; data_ddq_dq 0]
+    Eigen::MatrixXd A(model.nv*2, model.nv*2);
+    //A.resize(model.nv*2, model.nv*2);
+    A.setZero();
+    A.block(0, model.nv/2, model.nv/2, model.nv/2).setIdentity();
+    //A.block(model.nv/2, 0, model.nv/2, model.nv/2) = data.ddq_dq;
+    // implement this block with two for loops, for some reason the above line gives error
+    for(int i = 0; i < model.nv/2; i++){
+        for(int j = 0; j < model.nv/2; j++){
+            A(i+model.nv/2, j) = data.ddq_dq(i, j);
+        }
+    }
+    //std::cout << "Set up A matrix" << std::endl;
+
+    // B = [0; data_Minv]
+    Eigen::MatrixXd B(model.nv*2, model.nv);
+    B.setZero();
+    //B.block(model.nv/2, 0, model.nv/2, model.nv) = data.Minv;
+    for(int i = 0; i < model.nv/2; i++){
+        for(int j = 0; j < model.nv; j++){
+            B(i+model.nv/2, j) = data.Minv(i, j);
+        }
+    }
+    std::cout << "Set up B matrix" << std::endl;
+
+    // x = [q; qdot]
+    Eigen::VectorXd x(model.nv*2);
+    x.setZero();
+    //x.block(0, 0, model.nv, 1) = q;
+    for(int i = 0; i < model.nv; i++){
+        x[i] = q[i];
+    }
+    //x.block(model.nv, 0, model.nv, 1) = qvel;
+    for(int i = 0; i < model.nv; i++){
+        x[i+model.nv] = qvel[i];
+    }
+    std::cout << "Set up x vector" << std::endl;
+
+    // u = [tau] // this is free variable
+
+    // error = [q - q_des; qdot - qdot_des]
+    Eigen::VectorXd error_vec(model.nv*2);
+    error_vec.setZero();
+    for(int i = 0; i < model.nv; i++){
+        error_vec[i] = fixed_pos[i] - d->qpos[i];
+        error_vec[i+model.nv] = 0 - d->qvel[i];
+    }
+    std::cout << "Set up error vector" << std::endl;
+
+    // Populate matrices for a QP controller
+    // min error * Q * error
+    // s.t. x_dot = A * x + B * u
+    Eigen::MatrixXd P(model.nv*2, model.nv*2);
+    P.setZero();
+    //P.block(0, 0, model.nv*2, model.nv*2) = Q;
+    for(int i = 0; i < model.nv*2; i++){
+        for(int j = 0; j < model.nv*2; j++){
+            P(i, j) = Q(i, j);
+        }
+    }
+    std::cout << "Set up P matrix" << std::endl;
+
+    Eigen::VectorXd OSQP_q(model.nv*2);
+    OSQP_q.setZero();
+
+    // This will only include x_dot = Ax + Bu
+    Eigen::MatrixXd OSQP_A(model.nv*2, model.nv*2+model.nv);
+    OSQP_A.setZero();
+    //OSQP_A.block(0, 0, model.nv*2, model.nv*2) = A;
+    for(int i = 0; i < model.nv*2; i++){
+        for(int j = 0; j < model.nv*2; j++){
+            OSQP_A(i, j) = A(i, j);
+        }
+    }
+    //OSQP_A.block(0, model.nv*2, model.nv*2, model.nv) = B;
+    for(int i = 0; i < model.nv*2; i++){
+        for(int j = 0; j < model.nv; j++){
+            OSQP_A(i, j+model.nv*2) = B(i, j);
+        }
+    }
+    std::cout << "Set up OSQP_A matrix" << std::endl;
+
+    Eigen::VectorXd l(model.nv*2);
+    l.setZero();
+
+    Eigen::VectorXd u(model.nv*2);
+    u.setZero();
+    c_int P_vector_row_indices[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+    c_int P_column_pointers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+
+    c_int OSQP_A_vector_row_indices[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+    c_int OSQP_A_column_pointers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
+
+    std::cout << "Setting OSQPData" << std::endl;
+    // Solve the QP
+    OSQPData data;
+    data.n = model.nv*2;
+    data.m = model.nv*2;
+    data.P = csc_matrix(data.n, data.n, P.nonZeros(), P.data(), P_vector_row_indices, P_column_pointers);
+    data.q = OSQP_q.data();
+    data.A = csc_matrix(data.m, data.n, OSQP_A.nonZeros(), OSQP_A.data(), OSQP_A_vector_row_indices, OSQP_A_column_pointers);
+    data.l = l.data();
+    data.u = u.data();
+
+    std::cout << "Setting up OSQP problem" << std::endl;
+    // Setup workspace
+    OSQPWorkspace* work = new OSQPWorkspace;
+    osqp_setup(&work, &data, &settings);
+    std::cout << "Solving OSQP problem" << std::endl;
+
+    // Solve Problem
+    osqp_solve(work);
+
+    // Print the solution
+    printf("Solution:\n");
+    for (int i = 0; i < model.nv*2; i++) {
+        printf("%f\n", work->solution->x[i]);
+    }
+
+
+    
+
+
     
 
 
@@ -192,6 +379,7 @@ void my_controller_PD(const mjModel* m, mjData* d){
     ARR_PRINT(error, 7)
 
 }
+
 
 // mouse move callback
 void mouse_move(GLFWwindow* window, double xpos, double ypos) {
@@ -293,7 +481,7 @@ int main(int argc, const char** argv) {
     glfwSetMouseButtonCallback(window, mouse_button);
     glfwSetScrollCallback(window, scroll);
 
-    mjcb_control = my_controller_PD;
+    mjcb_control = my_controller_QP;
 
     // run main loop, target real-time simulation and 60 fps rendering
     while (!glfwWindowShouldClose(window)) {

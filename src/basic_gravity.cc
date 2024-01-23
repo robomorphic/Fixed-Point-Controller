@@ -200,21 +200,31 @@ void my_controller_QP(const mjModel* m, mjData* d){
     double kp = 1; // Proportional gain
     double kd = 1;  // Derivative gain
 
-    Eigen::VectorXd q;
-    q.resize(model.nv);
+    Eigen::VectorXd qpos;
+    qpos.resize(model.nv);
+    Eigen::VectorXd qerr;
+    qerr.resize(model.nv);
     Eigen::VectorXd qvel;
     qvel.resize(model.nv);
     Eigen::VectorXd qacc;
     qacc.resize(model.nv);
+    Eigen::VectorXd state;
+    state.resize(model.nv*3);
     // now assign d->qvel to qdot
     for(int i = 0; i < model.nv; i++){
-        q[i] = d->qpos[i];
+        qpos[i] = d->qpos[i];
         qvel[i] = d->qvel[i];
         qacc[i] = d->qacc[i];
+        qerr[i] = fixed_pos[i] - d->qpos[i];
+        state[i] = d->qpos[i];
+        state[i+model.nv] = d->qvel[i];
+        state[i+model.nv*2] = 0; // this is torque input!
     }
 
+
+
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
-    auto dynamic_drift = pinocchio::rnea(model, data, q, qvel, qacc);
+    auto dynamic_drift = pinocchio::rnea(model, data, qpos, qvel, qacc);
     auto end = std::chrono::high_resolution_clock::now();
 
     std::cout << "dynamic drift: " << std::endl;
@@ -222,11 +232,11 @@ void my_controller_QP(const mjModel* m, mjData* d){
 
     // apply the dynamic drift to the control input
     for(int i = 0; i < model.nv; i++){
-        d->ctrl[i] += dynamic_drift[i];
+        d->ctrl[i] = dynamic_drift[i];
     }
 
     // how to compute A and B matrices?
-    pinocchio::computeABADerivatives(model, data, q, qvel, qacc);
+    pinocchio::computeABADerivatives(model, data, qpos, qvel, qacc);
     std::cout << "A: " << std::endl;
     std::cout << data.ddq_dq << std::endl;
     // calculate B
@@ -240,141 +250,154 @@ void my_controller_QP(const mjModel* m, mjData* d){
     std::cout << "Set up OSQP settings" << std::endl;
     
     // Populate matrices for a QP controller
-    // min error * Q * error
+    // min error * P * error
     // s.t. x_dot = A * x + B * u
     
-    // Q = I
-    Eigen::MatrixXd Q(model.nv*2, model.nv*2);
-    //Q.resize(model.nv, model.nv);
-    Q.setIdentity();
-    std::cout << "Set up Q matrix" << std::endl;
+    // P = I
+    c_float P[18][18] = 
+    {
+        {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    };
+    // Now I need to write this in OSQP format
+    c_float P_x[18] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 
+                       1, 1, 1, 1, 1, 1, 1, 1, 1};
+    c_int P_i[18] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
+    c_int P_p[18] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
 
-    // A = [0 1; data_ddq_dq 0]
-    Eigen::MatrixXd A(model.nv*2, model.nv*2);
-    //A.resize(model.nv*2, model.nv*2);
-    A.setZero();
-    A.block(0, model.nv/2, model.nv/2, model.nv/2).setIdentity();
-    //A.block(model.nv/2, 0, model.nv/2, model.nv/2) = data.ddq_dq;
-    // implement this block with two for loops, for some reason the above line gives error
-    for(int i = 0; i < model.nv/2; i++){
-        for(int j = 0; j < model.nv/2; j++){
-            A(i+model.nv/2, j) = data.ddq_dq(i, j);
-        }
-    }
-    //std::cout << "Set up A matrix" << std::endl;
+    c_float q[18] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-    // B = [0; data_Minv]
-    Eigen::MatrixXd B(model.nv*2, model.nv);
-    B.setZero();
-    //B.block(model.nv/2, 0, model.nv/2, model.nv) = data.Minv;
-    for(int i = 0; i < model.nv/2; i++){
-        for(int j = 0; j < model.nv; j++){
-            B(i+model.nv/2, j) = data.Minv(i, j);
-        }
-    }
-    std::cout << "Set up B matrix" << std::endl;
+    // A = [I 0 B; 0 I 0; 0 0 I], B = data.Minv, so every element here is a 6x6 matrix
+    c_float A[18][18] = 
+    {
+        {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, data.Minv(0, 0), data.Minv(0, 1), data.Minv(0, 2), data.Minv(0, 3), data.Minv(0, 4), data.Minv(0, 5)},
+        {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, data.Minv(1, 0), data.Minv(1, 1), data.Minv(1, 2), data.Minv(1, 3), data.Minv(1, 4), data.Minv(1, 5)},
+        {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, data.Minv(2, 0), data.Minv(2, 1), data.Minv(2, 2), data.Minv(2, 3), data.Minv(2, 4), data.Minv(2, 5)},
+        {0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, data.Minv(3, 0), data.Minv(3, 1), data.Minv(3, 2), data.Minv(3, 3), data.Minv(3, 4), data.Minv(3, 5)},
+        {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, data.Minv(4, 0), data.Minv(4, 1), data.Minv(4, 2), data.Minv(4, 3), data.Minv(4, 4), data.Minv(4, 5)},
+        {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, data.Minv(5, 0), data.Minv(5, 1), data.Minv(5, 2), data.Minv(5, 3), data.Minv(5, 4), data.Minv(5, 5)},
+        {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    };
 
-    // x = [q; qdot]
-    Eigen::VectorXd x(model.nv*2);
-    x.setZero();
-    //x.block(0, 0, model.nv, 1) = q;
-    for(int i = 0; i < model.nv; i++){
-        x[i] = q[i];
-    }
-    //x.block(model.nv, 0, model.nv, 1) = qvel;
-    for(int i = 0; i < model.nv; i++){
-        x[i+model.nv] = qvel[i];
-    }
-    std::cout << "Set up x vector" << std::endl;
+    // Now we need to write A in sparse format, just like P
+    c_float A_x[18+36] = 
+    {
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        data.Minv(0, 0), data.Minv(0, 1), data.Minv(0, 2), data.Minv(0, 3), data.Minv(0, 4), data.Minv(0, 5),
+        data.Minv(1, 0), data.Minv(1, 1), data.Minv(1, 2), data.Minv(1, 3), data.Minv(1, 4), data.Minv(1, 5),
+        data.Minv(2, 0), data.Minv(2, 1), data.Minv(2, 2), data.Minv(2, 3), data.Minv(2, 4), data.Minv(2, 5),
+        data.Minv(3, 0), data.Minv(3, 1), data.Minv(3, 2), data.Minv(3, 3), data.Minv(3, 4), data.Minv(3, 5),
+        data.Minv(4, 0), data.Minv(4, 1), data.Minv(4, 2), data.Minv(4, 3), data.Minv(4, 4), data.Minv(4, 5),
+        data.Minv(5, 0), data.Minv(5, 1), data.Minv(5, 2), data.Minv(5, 3), data.Minv(5, 4), data.Minv(5, 5),
+    };
+    c_int A_i[18+36] = 
+    {
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+        0, 0, 0, 0, 0, 0,
+        1, 1, 1, 1, 1, 1,
+        2, 2, 2, 2, 2, 2,
+        3, 3, 3, 3, 3, 3,
+        4, 4, 4, 4, 4, 4,
+        5, 5, 5, 5, 5, 5,
+    };
+    c_int A_p[18+36] = 
+    {
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+        12, 13, 14, 15, 16, 17,
+        12, 13, 14, 15, 16, 17,
+        12, 13, 14, 15, 16, 17,
+        12, 13, 14, 15, 16, 17,
+        12, 13, 14, 15, 16, 17,
+        12, 13, 14, 15, 16, 17,
+    };
 
-    // u = [tau] // this is free variable
 
-    // error = [q - q_des; qdot - qdot_des]
-    Eigen::VectorXd error_vec(model.nv*2);
-    error_vec.setZero();
-    for(int i = 0; i < model.nv; i++){
-        error_vec[i] = fixed_pos[i] - d->qpos[i];
-        error_vec[i+model.nv] = 0 - d->qvel[i];
-    }
-    std::cout << "Set up error vector" << std::endl;
+
+    // l and u will be = [data_ddq_dq * q; speed_limits; torque_limits]
+    // I guess we can say that speed_limits and torque_limits are 50 for now...
+    auto temp_mult = data.ddq_dq * qpos;
+    c_float l[18] = {
+        temp_mult[0],
+        temp_mult[1],
+        temp_mult[2],
+        temp_mult[3],
+        temp_mult[4],
+        temp_mult[5],
+        -50, -50, -50, -50, -50, -50,
+        -50, -50, -50, -50, -50, -50
+    };
+    c_float u[18] = {
+        temp_mult[0],
+        temp_mult[1],
+        temp_mult[2],
+        temp_mult[3],
+        temp_mult[4],
+        temp_mult[5],
+        50, 50, 50, 50, 50, 50,
+        50, 50, 50, 50, 50, 50
+    };
 
     // Populate matrices for a QP controller
-    // min error * Q * error
-    // s.t. x_dot = A * x + B * u
-    Eigen::MatrixXd P(model.nv*2, model.nv*2);
-    P.setZero();
-    //P.block(0, 0, model.nv*2, model.nv*2) = Q;
-    for(int i = 0; i < model.nv*2; i++){
-        for(int j = 0; j < model.nv*2; j++){
-            P(i, j) = Q(i, j);
-        }
-    }
-    std::cout << "Set up P matrix" << std::endl;
 
-    Eigen::VectorXd OSQP_q(model.nv*2);
-    OSQP_q.setZero();
+    OSQPWorkspace *work;
+    OSQPData      *data     = (OSQPData *)c_malloc(sizeof(OSQPData));
 
-    // This will only include x_dot = Ax + Bu
-    Eigen::MatrixXd OSQP_A(model.nv*2, model.nv*2+model.nv);
-    OSQP_A.setZero();
-    //OSQP_A.block(0, 0, model.nv*2, model.nv*2) = A;
-    for(int i = 0; i < model.nv*2; i++){
-        for(int j = 0; j < model.nv*2; j++){
-            OSQP_A(i, j) = A(i, j);
-        }
-    }
-    //OSQP_A.block(0, model.nv*2, model.nv*2, model.nv) = B;
-    for(int i = 0; i < model.nv*2; i++){
-        for(int j = 0; j < model.nv; j++){
-            OSQP_A(i, j+model.nv*2) = B(i, j);
-        }
-    }
-    std::cout << "Set up OSQP_A matrix" << std::endl;
+    data->n = 18; // number of variables(this is actually 6, but the program must see it as 18 I guess)
+    data->m = 18; // number of constraints
+    data->P = csc_matrix(data->n, data->n, 18, P_x, P_i, P_p);
+    data->q = q;
+    //data->A = csc_matrix(data->m, data->n, 18+36, A_x, A_i, A_p);
+    //data->l = l;
+    //data->u = u;
 
-    Eigen::VectorXd l(model.nv*2);
-    l.setZero();
+    data->A = csc_matrix(18, 18, 0, NULL, NULL, NULL); // this is a dummy matrix, we will update it later
+    data->l = NULL;
+    data->u = NULL;
 
-    Eigen::VectorXd u(model.nv*2);
-    u.setZero();
-    c_int P_vector_row_indices[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
-    c_int P_column_pointers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+    settings.verbose = true;
 
-    c_int OSQP_A_vector_row_indices[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
-    c_int OSQP_A_column_pointers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
-
-    std::cout << "Setting OSQPData" << std::endl;
-    // Solve the QP
-    OSQPData data;
-    data.n = model.nv*2;
-    data.m = model.nv*2;
-    data.P = csc_matrix(data.n, data.n, P.nonZeros(), P.data(), P_vector_row_indices, P_column_pointers);
-    data.q = OSQP_q.data();
-    data.A = csc_matrix(data.m, data.n, OSQP_A.nonZeros(), OSQP_A.data(), OSQP_A_vector_row_indices, OSQP_A_column_pointers);
-    data.l = l.data();
-    data.u = u.data();
-
-    std::cout << "Setting up OSQP problem" << std::endl;
-    // Setup workspace
-    OSQPWorkspace* work = new OSQPWorkspace;
-    osqp_setup(&work, &data, &settings);
-    std::cout << "Solving OSQP problem" << std::endl;
+    osqp_setup(&work, data, &settings);
 
     // Solve Problem
     osqp_solve(work);
 
-    // Print the solution
+    // Print solution
     printf("Solution:\n");
-    for (int i = 0; i < model.nv*2; i++) {
+    for (int i = 0; i < data->n; i++) {
         printf("%f\n", work->solution->x[i]);
     }
 
 
-    
 
 
     
-
-
 
     ARR_PRINT(error, 7)
 

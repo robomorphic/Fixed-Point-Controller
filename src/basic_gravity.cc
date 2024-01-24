@@ -276,12 +276,14 @@ void my_controller_QP(const mjModel* m, mjData* d){
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
     };
     // Now I need to write this in OSQP format
-    c_float P_x[18] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 
-                       1, 1, 1, 1, 1, 1, 1, 1, 1};
-    c_int P_i[18] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
-    c_int P_p[18] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
-
-    c_float q[18] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    //c_float P_x[18] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    //c_float q[18]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    //c_int P_i[18] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
+    //c_int P_p[19] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
+    c_float P_x[3] = {1, 1};
+    c_float q[3]   = {0, 0};
+    c_int P_i[3] = {0, 1};
+    c_int P_p[3] = {0, 1};
 
     // A = [I 0 B; 0 I 0; 0 0 I], B = data.Minv, so every element here is a 6x6 matrix
     c_float A[18][18] = 
@@ -368,16 +370,18 @@ void my_controller_QP(const mjModel* m, mjData* d){
 
     OSQPWorkspace *work;
     OSQPData      *data     = (OSQPData *)c_malloc(sizeof(OSQPData));
+    int NUM_VAR = 2;
+    int NUM_CONSTR = 2;
 
-    data->n = 18; // number of variables(this is actually 6, but the program must see it as 18 I guess)
-    data->m = 18; // number of constraints
-    data->P = csc_matrix(data->n, data->n, 18, P_x, P_i, P_p);
+    data->n = NUM_VAR; // number of variables(this is actually 6, but the program must see it as 18 I guess)
+    data->m = NUM_CONSTR; // number of constraints
+    data->P = csc_matrix(data->n, data->n, NUM_VAR, P_x, P_i, P_p);
     data->q = q;
     //data->A = csc_matrix(data->m, data->n, 18+36, A_x, A_i, A_p);
     //data->l = l;
     //data->u = u;
 
-    data->A = csc_matrix(18, 18, 0, NULL, NULL, NULL); // this is a dummy matrix, we will update it later
+    data->A = csc_matrix(NUM_VAR, NUM_CONSTR, 0, NULL, NULL, NULL); // this is a dummy matrix, we will update it later
     data->l = NULL;
     data->u = NULL;
 

@@ -195,8 +195,6 @@ void my_controller_PD(const mjModel* m, mjData* d){
 }
 
 void my_controller_QP(const mjModel* m, mjData* d){
-    double error[7] = {0};
-    double prev_error[7] = {0};
     double kp = 1; // Proportional gain
     double kd = 1;  // Derivative gain
 
@@ -222,13 +220,12 @@ void my_controller_QP(const mjModel* m, mjData* d){
     }
 
 
-
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
     auto dynamic_drift = pinocchio::rnea(model, data, qpos, qvel, qacc);
     auto end = std::chrono::high_resolution_clock::now();
 
-    std::cout << "dynamic drift: " << std::endl;
-    std::cout << dynamic_drift << std::endl;
+    //std::cout << "dynamic drift: " << std::endl;
+    //std::cout << dynamic_drift << std::endl;
 
     // apply the dynamic drift to the control input
     for(int i = 0; i < model.nv; i++){
@@ -237,17 +234,17 @@ void my_controller_QP(const mjModel* m, mjData* d){
 
     // how to compute A and B matrices?
     pinocchio::computeABADerivatives(model, data, qpos, qvel, qacc);
-    std::cout << "A: " << std::endl;
-    std::cout << data.ddq_dq << std::endl;
+    //std::cout << "A: " << std::endl;
+    //std::cout << data.ddq_dq << std::endl;
     // calculate B
-    std::cout << "Minv: " << std::endl;
-    std::cout << data.Minv << std::endl;
+    //std::cout << "Minv: " << std::endl;
+    //std::cout << data.Minv << std::endl;
 
     OSQPSettings settings;
     osqp_set_default_settings(&settings);
-    settings.verbose = true;
+    settings.verbose = false;
     settings.max_iter = 1000;
-    std::cout << "Set up OSQP settings" << std::endl;
+    //std::cout << "Set up OSQP settings" << std::endl;
     
     // Populate matrices for a QP controller
     // min error * P * error
@@ -275,15 +272,26 @@ void my_controller_QP(const mjModel* m, mjData* d){
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
     };
+    /*
+    // print P in a Python array form
+    std::cout << "P: " << std::endl;
+    std::cout << "[";
+    for(int i = 0; i < 18; i++){
+        std::cout << "[";
+        for(int j = 0; j < 18; j++){
+            std::cout << P[i][j] << ", ";
+        }
+        std::cout << "], ";
+    }
+    std::cout << "]" << std::endl;
+    */
+
     // Now I need to write this in OSQP format
-    //c_float P_x[18] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-    //c_float q[18]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    //c_int P_i[18] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
-    //c_int P_p[19] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
-    c_float P_x[3] = {1, 1};
-    c_float q[3]   = {0, 0};
-    c_int P_i[3] = {0, 1};
-    c_int P_p[3] = {0, 1};
+    c_float q[18]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    c_float P_x[18] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    c_int P_i[18] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
+    c_int P_p[19] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
+    
 
     // A = [I 0 B; 0 I 0; 0 0 I], B = data.Minv, so every element here is a 6x6 matrix
     c_float A[18][18] = 
@@ -307,44 +315,48 @@ void my_controller_QP(const mjModel* m, mjData* d){
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
     };
-
+    /*
+    // print A in a Python array form
+    std::cout << "A: " << std::endl;
+    std::cout << "[";
+    for(int i = 0; i < 18; i++){
+        std::cout << "[";
+        for(int j = 0; j < 18; j++){
+            std::cout << A[i][j] << ", ";
+        }
+        std::cout << "], ";
+    }
+    std::cout << "]" << std::endl;
+    */
     // Now we need to write A in sparse format, just like P
-    c_float A_x[18+36] = 
+    c_float A_x[54] = 
     {
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        data.Minv(0, 0), data.Minv(0, 1), data.Minv(0, 2), data.Minv(0, 3), data.Minv(0, 4), data.Minv(0, 5),
-        data.Minv(1, 0), data.Minv(1, 1), data.Minv(1, 2), data.Minv(1, 3), data.Minv(1, 4), data.Minv(1, 5),
-        data.Minv(2, 0), data.Minv(2, 1), data.Minv(2, 2), data.Minv(2, 3), data.Minv(2, 4), data.Minv(2, 5),
-        data.Minv(3, 0), data.Minv(3, 1), data.Minv(3, 2), data.Minv(3, 3), data.Minv(3, 4), data.Minv(3, 5),
-        data.Minv(4, 0), data.Minv(4, 1), data.Minv(4, 2), data.Minv(4, 3), data.Minv(4, 4), data.Minv(4, 5),
-        data.Minv(5, 0), data.Minv(5, 1), data.Minv(5, 2), data.Minv(5, 3), data.Minv(5, 4), data.Minv(5, 5),
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+        data.Minv(0, 0), data.Minv(1, 0), data.Minv(2, 0), data.Minv(3, 0), data.Minv(4, 0), data.Minv(5, 0), 1,
+        data.Minv(0, 1), data.Minv(1, 1), data.Minv(2, 1), data.Minv(3, 1), data.Minv(4, 1), data.Minv(5, 1), 1,
+        data.Minv(0, 2), data.Minv(1, 2), data.Minv(2, 2), data.Minv(3, 2), data.Minv(4, 2), data.Minv(5, 2), 1,
+        data.Minv(0, 3), data.Minv(1, 3), data.Minv(2, 3), data.Minv(3, 3), data.Minv(4, 3), data.Minv(5, 3), 1,
+        data.Minv(0, 4), data.Minv(1, 4), data.Minv(2, 4), data.Minv(3, 4), data.Minv(4, 4), data.Minv(5, 4), 1,
+        data.Minv(0, 5), data.Minv(1, 5), data.Minv(2, 5), data.Minv(3, 5), data.Minv(4, 5), data.Minv(5, 5), 1,    
     };
-    c_int A_i[18+36] = 
+    c_int A_i[] = 
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-        0, 0, 0, 0, 0, 0,
-        1, 1, 1, 1, 1, 1,
-        2, 2, 2, 2, 2, 2,
-        3, 3, 3, 3, 3, 3,
-        4, 4, 4, 4, 4, 4,
-        5, 5, 5, 5, 5, 5,
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+        0, 1, 2, 3, 4, 5, 12,
+        0, 1, 2, 3, 4, 5, 13,
+        0, 1, 2, 3, 4, 5, 14,
+        0, 1, 2, 3, 4, 5, 15,
+        0, 1, 2, 3, 4, 5, 16,
+        0, 1, 2, 3, 4, 5, 17,
     };
-    c_int A_p[18+36] = 
+    c_int A_p[] = 
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-        12, 13, 14, 15, 16, 17,
-        12, 13, 14, 15, 16, 17,
-        12, 13, 14, 15, 16, 17,
-        12, 13, 14, 15, 16, 17,
-        12, 13, 14, 15, 16, 17,
-        12, 13, 14, 15, 16, 17,
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 19, 26, 33, 40, 47, 54
     };
-
-
 
     // l and u will be = [data_ddq_dq * q; speed_limits; torque_limits]
     // I guess we can say that speed_limits and torque_limits are 50 for now...
-    auto temp_mult = data.ddq_dq * qpos;
+    auto temp_mult = data.ddq_dq * (qerr);
     c_float l[18] = {
         temp_mult[0],
         temp_mult[1],
@@ -365,25 +377,35 @@ void my_controller_QP(const mjModel* m, mjData* d){
         50, 50, 50, 50, 50, 50,
         50, 50, 50, 50, 50, 50
     };
-
+    /*
+    // print l and u in a Python array form
+    std::cout << "l: " << std::endl;
+    std::cout << "[";
+    for(int i = 0; i < 18; i++){
+        std::cout << l[i] << ", ";
+    }
+    std::cout << "]" << std::endl;
+    std::cout << "u: " << std::endl;
+    std::cout << "[";
+    for(int i = 0; i < 18; i++){
+        std::cout << u[i] << ", ";
+    }
+    std::cout << "]" << std::endl;
+    */
     // Populate matrices for a QP controller
 
     OSQPWorkspace *work;
     OSQPData      *data     = (OSQPData *)c_malloc(sizeof(OSQPData));
-    int NUM_VAR = 2;
-    int NUM_CONSTR = 2;
+    int NUM_VAR = 18;
+    int NUM_CONSTR = 18;
 
     data->n = NUM_VAR; // number of variables(this is actually 6, but the program must see it as 18 I guess)
     data->m = NUM_CONSTR; // number of constraints
     data->P = csc_matrix(data->n, data->n, NUM_VAR, P_x, P_i, P_p);
     data->q = q;
-    //data->A = csc_matrix(data->m, data->n, 18+36, A_x, A_i, A_p);
-    //data->l = l;
-    //data->u = u;
-
-    data->A = csc_matrix(NUM_VAR, NUM_CONSTR, 0, NULL, NULL, NULL); // this is a dummy matrix, we will update it later
-    data->l = NULL;
-    data->u = NULL;
+    data->A = csc_matrix(data->m, data->n, 18+36, A_x, A_i, A_p);
+    data->l = l;
+    data->u = u;
 
     settings.verbose = true;
 
@@ -394,8 +416,12 @@ void my_controller_QP(const mjModel* m, mjData* d){
 
     // Print solution
     printf("Solution:\n");
-    for (int i = 0; i < data->n; i++) {
-        printf("%f\n", work->solution->x[i]);
+    for (int i = 0; i < 6; i++) {
+        printf("%f\n", work->solution->x[i+12]);
+    }
+    // my solution is x[12:]
+    for(int i = 0; i < 6; i++){
+        d->ctrl[i] += work->solution->x[i+12];
     }
 
 

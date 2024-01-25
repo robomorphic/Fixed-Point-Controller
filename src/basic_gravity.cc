@@ -195,6 +195,8 @@ void my_controller_PD(const mjModel* m, mjData* d){
 }
 
 void my_controller_QP(const mjModel* m, mjData* d){
+    double error[7] = {0};
+    double prev_error[7] = {0};
     double kp = 1; // Proportional gain
     double kd = 1;  // Derivative gain
 
@@ -219,7 +221,6 @@ void my_controller_QP(const mjModel* m, mjData* d){
         state[i+model.nv*2] = 0; // this is torque input!
     }
 
-
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
     auto dynamic_drift = pinocchio::rnea(model, data, qpos, qvel, qacc);
     auto end = std::chrono::high_resolution_clock::now();
@@ -230,6 +231,16 @@ void my_controller_QP(const mjModel* m, mjData* d){
     // apply the dynamic drift to the control input
     for(int i = 0; i < model.nv; i++){
         d->ctrl[i] = dynamic_drift[i];
+    }
+    bool flipped[7] = {false};
+    // need to take the absolute value of qerr
+    for(int i = 0; i < model.nv; i++){
+        if(qerr[i] < 0){ // need to flip the sign of other things, too!
+            qerr[i] = -qerr[i];
+            qvel[i] = -qvel[i];
+            qacc[i] = -qacc[i];
+            flipped[i] = true;
+        }
     }
 
     // how to compute A and B matrices?
@@ -259,18 +270,18 @@ void my_controller_QP(const mjModel* m, mjData* d){
         {0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
         {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
         {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     };
     /*
     // print P in a Python array form
@@ -285,29 +296,33 @@ void my_controller_QP(const mjModel* m, mjData* d){
     }
     std::cout << "]" << std::endl;
     */
-
     // Now I need to write this in OSQP format
     c_float q[18]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    c_float P_x[18] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-    c_int P_i[18] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
-    c_int P_p[19] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
+    c_float P_x[6] = {1, 1, 1, 1, 1, 1};
+    c_int P_i[6] = {0, 1, 2, 3, 4, 5};
+    c_int P_p[19] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
     
-
+    // Let's try it without T!
     // A = [I 0 B; 0 I 0; 0 0 I], B = data.Minv, so every element here is a 6x6 matrix
+    float T = 1.0/60.0;
+    auto Minv = -1 * data.Minv;
+
     c_float A[18][18] = 
     {
-        {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, data.Minv(0, 0), data.Minv(0, 1), data.Minv(0, 2), data.Minv(0, 3), data.Minv(0, 4), data.Minv(0, 5)},
-        {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, data.Minv(1, 0), data.Minv(1, 1), data.Minv(1, 2), data.Minv(1, 3), data.Minv(1, 4), data.Minv(1, 5)},
-        {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, data.Minv(2, 0), data.Minv(2, 1), data.Minv(2, 2), data.Minv(2, 3), data.Minv(2, 4), data.Minv(2, 5)},
-        {0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, data.Minv(3, 0), data.Minv(3, 1), data.Minv(3, 2), data.Minv(3, 3), data.Minv(3, 4), data.Minv(3, 5)},
-        {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, data.Minv(4, 0), data.Minv(4, 1), data.Minv(4, 2), data.Minv(4, 3), data.Minv(4, 4), data.Minv(4, 5)},
-        {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, data.Minv(5, 0), data.Minv(5, 1), data.Minv(5, 2), data.Minv(5, 3), data.Minv(5, 4), data.Minv(5, 5)},
-        {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
+        {1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0},
+        
+        {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, Minv(0, 0), Minv(0, 1), Minv(0, 2), Minv(0, 3), Minv(0, 4), Minv(0, 5)},
+        {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, Minv(1, 0), Minv(1, 1), Minv(1, 2), Minv(1, 3), Minv(1, 4), Minv(1, 5)},
+        {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, Minv(2, 0), Minv(2, 1), Minv(2, 2), Minv(2, 3), Minv(2, 4), Minv(2, 5)},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, Minv(3, 0), Minv(3, 1), Minv(3, 2), Minv(3, 3), Minv(3, 4), Minv(3, 5)},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, Minv(4, 0), Minv(4, 1), Minv(4, 2), Minv(4, 3), Minv(4, 4), Minv(4, 5)},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, Minv(5, 0), Minv(5, 1), Minv(5, 2), Minv(5, 3), Minv(5, 4), Minv(5, 5)},
+        
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0},
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
@@ -324,57 +339,68 @@ void my_controller_QP(const mjModel* m, mjData* d){
         for(int j = 0; j < 18; j++){
             std::cout << A[i][j] << ", ";
         }
-        std::cout << "], ";
+        std::cout << "], " << std::endl;
     }
     std::cout << "]" << std::endl;
     */
     // Now we need to write A in sparse format, just like P
     c_float A_x[54] = 
     {
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
-        data.Minv(0, 0), data.Minv(1, 0), data.Minv(2, 0), data.Minv(3, 0), data.Minv(4, 0), data.Minv(5, 0), 1,
-        data.Minv(0, 1), data.Minv(1, 1), data.Minv(2, 1), data.Minv(3, 1), data.Minv(4, 1), data.Minv(5, 1), 1,
-        data.Minv(0, 2), data.Minv(1, 2), data.Minv(2, 2), data.Minv(3, 2), data.Minv(4, 2), data.Minv(5, 2), 1,
-        data.Minv(0, 3), data.Minv(1, 3), data.Minv(2, 3), data.Minv(3, 3), data.Minv(4, 3), data.Minv(5, 3), 1,
-        data.Minv(0, 4), data.Minv(1, 4), data.Minv(2, 4), data.Minv(3, 4), data.Minv(4, 4), data.Minv(5, 4), 1,
-        data.Minv(0, 5), data.Minv(1, 5), data.Minv(2, 5), data.Minv(3, 5), data.Minv(4, 5), data.Minv(5, 5), 1,    
+        1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, 
+        Minv(0, 0), Minv(1, 0), Minv(2, 0), Minv(3, 0), Minv(4, 0), Minv(5, 0), 1,
+        Minv(0, 1), Minv(1, 1), Minv(2, 1), Minv(3, 1), Minv(4, 1), Minv(5, 1), 1,
+        Minv(0, 2), Minv(1, 2), Minv(2, 2), Minv(3, 2), Minv(4, 2), Minv(5, 2), 1,
+        Minv(0, 3), Minv(1, 3), Minv(2, 3), Minv(3, 3), Minv(4, 3), Minv(5, 3), 1,
+        Minv(0, 4), Minv(1, 4), Minv(2, 4), Minv(3, 4), Minv(4, 4), Minv(5, 4), 1,
+        Minv(0, 5), Minv(1, 5), Minv(2, 5), Minv(3, 5), Minv(4, 5), Minv(5, 5), 1,    
     };
     c_int A_i[] = 
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
-        0, 1, 2, 3, 4, 5, 12,
-        0, 1, 2, 3, 4, 5, 13,
-        0, 1, 2, 3, 4, 5, 14,
-        0, 1, 2, 3, 4, 5, 15,
-        0, 1, 2, 3, 4, 5, 16,
-        0, 1, 2, 3, 4, 5, 17,
+        0, 1, 2, 3, 4, 5, 
+        0, 1, 2, 3, 4, 5, 0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 11,
+        6, 7, 8, 9, 10, 11, 12,
+        6, 7, 8, 9, 10, 11, 13,
+        6, 7, 8, 9, 10, 11, 14,
+        6, 7, 8, 9, 10, 11, 15,
+        6, 7, 8, 9, 10, 11, 16,
+        6, 7, 8, 9, 10, 11, 17,
     };
     c_int A_p[] = 
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 19, 26, 33, 40, 47, 54
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 25, 32, 39, 46, 53, 60
     };
 
     // l and u will be = [data_ddq_dq * q; speed_limits; torque_limits]
     // I guess we can say that speed_limits and torque_limits are 50 for now...
-    auto temp_mult = data.ddq_dq * (qerr);
+    
     c_float l[18] = {
-        temp_mult[0],
-        temp_mult[1],
-        temp_mult[2],
-        temp_mult[3],
-        temp_mult[4],
-        temp_mult[5],
-        -50, -50, -50, -50, -50, -50,
+        qerr[0],
+        qerr[1],
+        qerr[2],
+        qerr[3],
+        qerr[4],
+        qerr[5],
+        qvel[0],
+        qvel[1],
+        qvel[2],
+        qvel[3],
+        qvel[4],
+        qvel[5],
         -50, -50, -50, -50, -50, -50
     };
     c_float u[18] = {
-        temp_mult[0],
-        temp_mult[1],
-        temp_mult[2],
-        temp_mult[3],
-        temp_mult[4],
-        temp_mult[5],
-        50, 50, 50, 50, 50, 50,
+        qerr[0],
+        qerr[1],
+        qerr[2],
+        qerr[3],
+        qerr[4],
+        qerr[5],
+        qvel[0],
+        qvel[1],
+        qvel[2],
+        qvel[3],
+        qvel[4],
+        qvel[5],
         50, 50, 50, 50, 50, 50
     };
     /*
@@ -407,13 +433,14 @@ void my_controller_QP(const mjModel* m, mjData* d){
     data->l = l;
     data->u = u;
 
-    settings.verbose = true;
+    settings.verbose = false;
 
     osqp_setup(&work, data, &settings);
 
     // Solve Problem
     osqp_solve(work);
 
+    /*
     // Print solution
     printf("Solution:\n");
     for (int i = 0; i < 6; i++) {
@@ -423,13 +450,38 @@ void my_controller_QP(const mjModel* m, mjData* d){
     for(int i = 0; i < 6; i++){
         d->ctrl[i] += work->solution->x[i+12];
     }
+    */
+    // check if the problem is solved
+    if(work->info->status_val != 1){
+        std::cout << "QP problem not solved!" << std::endl;
+        return;
+    }
+
+    std::cout << "Completed control input: " << std::endl;
+    for(int i = 0; i < 18; i++){
+        std::cout << work->solution->x[i] << std::endl;
+    }
+    for(int i = 0; i < 6; i++){
+        std::cout << "Solution: " << work->solution->x[12+i] << std::endl;
+        std::cout << "Error: " << qerr[i] << std::endl;
+        std::cout << "Curr qpos: " << qpos[i] << std::endl;
+        std::cout << "Curr aim: " << fixed_pos[i] << std::endl;
+    }
+    for(int i = 0; i < 6; i++){
+        if(flipped[i]){
+            d->ctrl[i] -= work->solution->x[12+i];
+        }
+        else{
+            d->ctrl[i] += work->solution->x[12+i];
+        }
+    }
 
 
 
 
     
 
-    ARR_PRINT(error, 7)
+    //ARR_PRINT(error, 7)
 
 }
 

@@ -215,7 +215,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
         qpos[i] = d->qpos[i];
         qvel[i] = d->qvel[i];
         qacc[i] = d->qacc[i];
-        qerr[i] = fixed_pos[i] - d->qpos[i];
+        qerr[i] = d->qpos[i] - fixed_pos[i];
         state[i] = d->qpos[i];
         state[i+model.nv] = d->qvel[i];
         state[i+model.nv*2] = 0; // this is torque input!
@@ -223,7 +223,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
 
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
     auto dynamic_drift = pinocchio::rnea(model, data, qpos, qvel, qacc);
-    auto end = std::chrono::high_resolution_clock::now();
+    //auto end = std::chrono::high_resolution_clock::now();
 
     //std::cout << "dynamic drift: " << std::endl;
     //std::cout << dynamic_drift << std::endl;
@@ -231,16 +231,6 @@ void my_controller_QP(const mjModel* m, mjData* d){
     // apply the dynamic drift to the control input
     for(int i = 0; i < model.nv; i++){
         d->ctrl[i] = dynamic_drift[i];
-    }
-    bool flipped[7] = {false};
-    // need to take the absolute value of qerr
-    for(int i = 0; i < model.nv; i++){
-        if(qerr[i] < 0){ // need to flip the sign of other things, too!
-            qerr[i] = -qerr[i];
-            qvel[i] = -qvel[i];
-            qacc[i] = -qacc[i];
-            flipped[i] = true;
-        }
     }
 
     // how to compute A and B matrices?
@@ -253,7 +243,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
 
     OSQPSettings settings;
     osqp_set_default_settings(&settings);
-    settings.verbose = false;
+    settings.verbose = true;
     settings.max_iter = 1000;
     //std::cout << "Set up OSQP settings" << std::endl;
     
@@ -298,15 +288,16 @@ void my_controller_QP(const mjModel* m, mjData* d){
     */
     // Now I need to write this in OSQP format
     c_float q[18]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    c_float P_x[6] = {1, 1, 1, 1, 1, 1};
+    c_float P_x[6] = {10, 10, 10, 10, 10, 10};
     c_int P_i[6] = {0, 1, 2, 3, 4, 5};
     c_int P_p[19] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
     
     // Let's try it without T!
     // A = [I 0 B; 0 I 0; 0 0 I], B = data.Minv, so every element here is a 6x6 matrix
     float T = 1.0/60.0;
-    auto Minv = -1 * data.Minv;
-
+    auto Minv_temp = -T * data.Minv;
+    Eigen::Matrix<double, 6, 6> Minv = Minv_temp; // do I need this?
+    
     c_float A[18][18] = 
     {
         {1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -344,9 +335,10 @@ void my_controller_QP(const mjModel* m, mjData* d){
     std::cout << "]" << std::endl;
     */
     // Now we need to write A in sparse format, just like P
-    c_float A_x[54] = 
+    c_float A_x[60] = 
     {
-        1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, 
+        1, 1, 1, 1, 1, 1, 
+        -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1,
         Minv(0, 0), Minv(1, 0), Minv(2, 0), Minv(3, 0), Minv(4, 0), Minv(5, 0), 1,
         Minv(0, 1), Minv(1, 1), Minv(2, 1), Minv(3, 1), Minv(4, 1), Minv(5, 1), 1,
         Minv(0, 2), Minv(1, 2), Minv(2, 2), Minv(3, 2), Minv(4, 2), Minv(5, 2), 1,
@@ -356,7 +348,6 @@ void my_controller_QP(const mjModel* m, mjData* d){
     };
     c_int A_i[] = 
     {
-        0, 1, 2, 3, 4, 5, 
         0, 1, 2, 3, 4, 5, 0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 11,
         6, 7, 8, 9, 10, 11, 12,
         6, 7, 8, 9, 10, 11, 13,
@@ -367,12 +358,12 @@ void my_controller_QP(const mjModel* m, mjData* d){
     };
     c_int A_p[] = 
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 25, 32, 39, 46, 53, 60
+        0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 25, 32, 39, 46, 53, 60
     };
 
     // l and u will be = [data_ddq_dq * q; speed_limits; torque_limits]
     // I guess we can say that speed_limits and torque_limits are 50 for now...
-    
+    float hard_limit = 50;
     c_float l[18] = {
         qerr[0],
         qerr[1],
@@ -386,7 +377,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
         qvel[3],
         qvel[4],
         qvel[5],
-        -50, -50, -50, -50, -50, -50
+        -hard_limit, -hard_limit, -hard_limit, -hard_limit, -hard_limit, -hard_limit
     };
     c_float u[18] = {
         qerr[0],
@@ -401,7 +392,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
         qvel[3],
         qvel[4],
         qvel[5],
-        50, 50, 50, 50, 50, 50
+        hard_limit, hard_limit, hard_limit, hard_limit, hard_limit, hard_limit
     };
     /*
     // print l and u in a Python array form
@@ -433,8 +424,6 @@ void my_controller_QP(const mjModel* m, mjData* d){
     data->l = l;
     data->u = u;
 
-    settings.verbose = false;
-
     osqp_setup(&work, data, &settings);
 
     // Solve Problem
@@ -462,19 +451,29 @@ void my_controller_QP(const mjModel* m, mjData* d){
         std::cout << work->solution->x[i] << std::endl;
     }
     for(int i = 0; i < 6; i++){
-        std::cout << "Solution: " << work->solution->x[12+i] << std::endl;
+        std::cout << "Solution: " << -work->solution->x[12+i] << std::endl;
         std::cout << "Error: " << qerr[i] << std::endl;
         std::cout << "Curr qpos: " << qpos[i] << std::endl;
-        std::cout << "Curr aim: " << fixed_pos[i] << std::endl;
+        std::cout << "Curr aim: " << fixed_pos[i] << std::endl << std::endl;
     }
     for(int i = 0; i < 6; i++){
-        if(flipped[i]){
-            d->ctrl[i] -= work->solution->x[12+i];
-        }
-        else{
-            d->ctrl[i] += work->solution->x[12+i];
-        }
+        d->ctrl[i] += work->solution->x[12+i];
     }
+    /*
+    // Now before applying this, I have a suspection that d->ctrl is actually the acceleration, not the torque
+    // we need to apply Minv*tau to get the acceleration
+    Eigen::VectorXd torque;
+    torque.resize(6);
+    for(int i = 0; i < 6; i++){
+        torque[i] = work->solution->x[12+i];
+    }
+    Eigen::VectorXd acc = Minv * torque;
+    for(int i = 0; i < 6; i++){
+        d->ctrl[i] += acc[i];
+    }
+    */
+
+
 
 
 

@@ -4,19 +4,14 @@
 #include "pinocchio/algorithm/kinematics.hpp"
 
 #include "pinocchio/algorithm/aba-derivatives.hpp"
+#include "pinocchio/algorithm/rnea.hpp"
  
 #include <iostream>
- 
-// PINOCCHIO_MODEL_DIR is defined by the CMake but you can define your own directory here.
-#ifndef PINOCCHIO_MODEL_DIR
-  #define PINOCCHIO_MODEL_DIR "path_to_the_model_dir"
-#endif
  
 int main(int argc, char ** argv)
 {
   using namespace pinocchio;
   
-  // You should change here to set up your own URDF file or just pass it as an argument of this example.
   const std::string urdf_filename = (argc<=1) ? std::string("../models/panda.urdf") : argv[1];
   
   // Load the urdf model
@@ -40,7 +35,15 @@ int main(int argc, char ** argv)
   
   // Computes the forward dynamics (ABA) derivatives for all the joints of the robot
   computeABADerivatives(model, data, q, v, tau, djoint_acc_dq, djoint_acc_dv, djoint_acc_dtau);
+  computeGeneralizedGravity(model, data, q);
   
   // Get access to the joint acceleration
   std::cout << "Joint acceleration: " << data.ddq.transpose() << std::endl;
+
+  std::cout << "Curr gravity: " << data.g.transpose() << std::endl;
 }
+
+
+
+
+

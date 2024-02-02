@@ -71,22 +71,24 @@ if(MUJOCO_HARDEN)
 endif()
 
 # Build sample binaries
-add_executable(compile compile.cc)
+add_executable(compile src/compile.cc)
 target_compile_options(compile PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
 target_link_libraries(compile Threads::Threads)
 target_link_options(compile PRIVATE ${MUJOCO_SAMPLE_LINK_OPTIONS})
 
-add_executable(testspeed testspeed.cc)
-target_compile_options(testspeed PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(testspeed Threads::Threads)
-target_link_options(testspeed PRIVATE ${MUJOCO_SAMPLE_LINK_OPTIONS})
+# This mujoco is built by me and installed in /Users/alp/mujoco/install
+set(MUJOCO_FOLDER /Users/alp/mujoco/install/lib/cmake)
+find_package(mujoco REQUIRED PATHS ${MUJOCO_FOLDER})
+find_package(pinocchio REQUIRED)
 
 target_link_libraries(compile mujoco::mujoco)
-target_link_libraries(testspeed mujoco::mujoco)
+add_executable(pinocchio_example src/pinocchio_example.cc)
+target_compile_options(pinocchio_example PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+target_link_libraries(pinocchio_example mujoco::mujoco pinocchio)
 
 # Build samples that require GLFW.
 
-add_executable(basic basic.cc)
+add_executable(basic src/basic.cc)
 target_compile_options(basic PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
 target_link_libraries(
   basic
@@ -96,7 +98,7 @@ target_link_libraries(
 )
 target_link_options(basic PRIVATE ${MUJOCO_SAMPLE_LINK_OPTIONS})
 
-add_executable(record record.cc array_safety.h)
+add_executable(record src/record.cc src/array_safety.h)
 target_compile_options(record PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
 target_link_libraries(
   record
@@ -110,7 +112,6 @@ if(APPLE AND MUJOCO_BUILD_MACOS_FRAMEWORKS)
   embed_in_bundle(basic simulate)
   embed_in_bundle(compile simulate)
   embed_in_bundle(record simulate)
-  embed_in_bundle(testspeed simulate)
 endif()
 
 # Do not install if macOS Bundles are created as RPATH is managed manually there.
@@ -128,7 +129,6 @@ if(_INSTALL_SAMPLES)
     basic
     compile
     record
-    testspeed
     INSTALL_DIRECTORY
     "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}"
     LIB_DIRS
@@ -141,7 +141,6 @@ if(_INSTALL_SAMPLES)
     TARGETS basic
             compile
             record
-            testspeed
     EXPORT ${PROJECT_NAME}
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT samples
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT samples

@@ -99,6 +99,7 @@ void mycontroller(const mjModel* m, mjData* d){
 }
 
 void my_controller_PD(const mjModel* m, mjData* d){
+    //auto start = std::chrono::high_resolution_clock::now();
     double error[6] = {0};
     double prev_error[6] = {0};
     double kp = 1; // Proportional gain
@@ -139,6 +140,9 @@ void my_controller_PD(const mjModel* m, mjData* d){
     for(int i = 0; i < pinocchio_model.nv; i++){
         d->ctrl[i] += dynamic_drift[i];
     }
+    //auto end = std::chrono::high_resolution_clock::now();
+    // write it in nanoseconds
+    //std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << std::endl;
 
     ARR_PRINT(error, pinocchio_model.nv)
 }
@@ -172,6 +176,7 @@ void qp_preparation(const mjModel* m, mjData* d){
 
 void my_controller_QP(const mjModel* m, mjData* d){
     // controller_benchmark_start
+    auto start = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < pinocchio_model.nv; i++){
         qpos[i] = d->qpos[i];
         qvel[i] = d->qvel[i];
@@ -335,10 +340,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
 
     // Solve Problem
     // osqp solve start
-    auto start = std::chrono::high_resolution_clock::now();    
     osqp_solve(work);
-    auto end = std::chrono::high_resolution_clock::now();
-    file << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
     // osqp solve end
 
     // check if the problem is solved
@@ -351,10 +353,10 @@ void my_controller_QP(const mjModel* m, mjData* d){
     }
     // controller_benchmark_end
     // take program_start - end, if it took longer than 15 seconds, then close the file and exit the program
-    if(std::chrono::duration_cast<std::chrono::seconds>(end - program_start).count() > 15){
-        file.close();
-        exit(0);
-    }
+    //if(std::chrono::duration_cast<std::chrono::seconds>(end - program_start).count() > 15){
+    //    file.close();
+    //    exit(0);
+    //}
 
     /*
     std::cout << "Completed control input: " << std::endl;

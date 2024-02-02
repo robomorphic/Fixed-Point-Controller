@@ -10,5 +10,5 @@ CMakeFiles/**
 CMakeCache.txt
 compile_commands.json
 lib/**
-
-
+cmake/tmp-cxx-standard.cpp
+pinocchio.pc

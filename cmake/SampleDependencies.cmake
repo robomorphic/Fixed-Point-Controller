@@ -42,21 +42,7 @@ set(MUJOCO_BUILD_TESTS OFF)
 set(MUJOCO_BUILD_PYTHON OFF)
 set(MUJOCO_TEST_PYTHON_UTIL OFF)
 
-findorfetch(
-  USE_SYSTEM_PACKAGE
-  MUJOCO_SAMPLES_USE_SYSTEM_MUJOCO
-  PACKAGE_NAME
-  mujoco
-  LIBRARY_NAME
-  mujoco
-  GIT_REPO
-  https://github.com/google-deepmind/mujoco.git
-  GIT_TAG
-  main
-  TARGETS
-  mujoco
-  EXCLUDE_FROM_ALL
-)
+
 
 option(MUJOCO_EXTRAS_STATIC_GLFW
        "Link MuJoCo sample apps and simulate libraries against GLFW statically." ON
@@ -87,6 +73,22 @@ findorfetch(
   ${MUJOCO_DEP_VERSION_glfw3}
   TARGETS
   glfw
+  EXCLUDE_FROM_ALL
+)
+
+findorfetch(
+  USE_SYSTEM_PACKAGE
+  pinocchio
+  PACKAGE_NAME
+  pinocchio
+  LIBRARY_NAME
+  pinocchio
+  GIT_REPO
+  https://github.com/stack-of-tasks/pinocchio
+  GIT_TAG
+  v2.7.0
+  TARGETS
+  pinocchio
   EXCLUDE_FROM_ALL
 )
 

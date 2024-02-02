@@ -75,16 +75,22 @@ add_executable(compile src/compile.cc)
 target_compile_options(compile PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
 target_link_libraries(compile Threads::Threads)
 target_link_options(compile PRIVATE ${MUJOCO_SAMPLE_LINK_OPTIONS})
+target_link_libraries(compile mujoco::mujoco)
 
 # This mujoco is built by me and installed in /Users/alp/mujoco/install
 set(MUJOCO_FOLDER /Users/alp/mujoco/install/lib/cmake)
 find_package(mujoco REQUIRED PATHS ${MUJOCO_FOLDER})
-find_package(pinocchio REQUIRED)
+find_package(pinocchio REQUIRED) # cmake installs this in _deps
+find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation
 
-target_link_libraries(compile mujoco::mujoco)
 add_executable(pinocchio_example src/pinocchio_example.cc)
 target_compile_options(pinocchio_example PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
 target_link_libraries(pinocchio_example mujoco::mujoco pinocchio)
+
+add_executable(fpm_example src/fpm_example.cpp src/int_vary.cpp)
+target_compile_options(fpm_example PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+target_link_libraries(fpm_example mujoco::mujoco Eigen3::Eigen)
+target_include_directories(fpm_example PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Build samples that require GLFW.
 

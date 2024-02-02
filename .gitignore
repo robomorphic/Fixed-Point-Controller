@@ -3,3 +3,12 @@
 !*.*
 .vscode/*
 exp/**
+_deps/**
+ccd-targets.cmake
+cmake_install.cmake
+CMakeFiles/**
+CMakeCache.txt
+compile_commands.json
+lib/**
+
+

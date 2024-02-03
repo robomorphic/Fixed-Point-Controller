@@ -19,6 +19,8 @@ set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 # Default to GLVND if available.
 set(CMAKE_POLICY_DEFAULT_CMP0072 NEW)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
 # This line has to appear before 'PROJECT' in order to be able to disable incremental linking
 set(MSVC_INCREMENTAL_DEFAULT ON)
 
@@ -87,10 +89,10 @@ add_executable(pinocchio_example src/pinocchio_example.cc)
 target_compile_options(pinocchio_example PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
 target_link_libraries(pinocchio_example mujoco::mujoco pinocchio)
 
-add_executable(fpm_example src/fpm_example.cpp src/int_vary.cpp)
-target_compile_options(fpm_example PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(fpm_example mujoco::mujoco Eigen3::Eigen)
-target_include_directories(fpm_example PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_executable(intn_tests src/intn_tests.cpp src/intn.cpp)
+target_compile_options(intn_tests PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+target_link_libraries(intn_tests mujoco::mujoco Eigen3::Eigen)
+target_include_directories(intn_tests PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Build samples that require GLFW.
 

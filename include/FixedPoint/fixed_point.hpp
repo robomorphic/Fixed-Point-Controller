@@ -98,6 +98,9 @@ public:
                 >:: exec(raw_));
     }
 
+    // This multiplication method also converts the result to a new format
+    // This is mathematically correct, but I don't want it to happen for Eigen compatibility
+    /*
     /// Multiplication with another fixed-point
     template <int INT_BITS2, int FRAC_BITS2>
     FixedPoint<INT_BITS + INT_BITS2, FRAC_BITS + FRAC_BITS2>
@@ -105,6 +108,15 @@ public:
     {
         return FixedPoint<INT_BITS + INT_BITS2, FRAC_BITS + FRAC_BITS2>::createRaw(raw_ * value.getRaw());
     }
+    */
+   FixedPoint<INT_BITS, FRAC_BITS>
+   operator * (FixedPoint<INT_BITS, FRAC_BITS> value) const
+    {
+        auto temp = FixedPoint<INT_BITS*2, FRAC_BITS*2>::createRaw(raw_ * value.getRaw());
+        // Now we need to shift the radix point back to the original position
+        return temp.template convert<INT_BITS, FRAC_BITS>();
+    }
+
 
     /// Addition with an integer
     FixedPoint<INT_BITS, FRAC_BITS> operator +(IntType value) const

@@ -443,7 +443,7 @@ int main(int argc, const char** argv) {
 
     qp_preparation(m, d);
 
-    mjcb_control = my_controller_PD;
+    mjcb_control = my_controller_QP;
 
     // run main loop, target real-time simulation and 60 fps rendering
     while (!glfwWindowShouldClose(window)) {

@@ -100,7 +100,6 @@ find_package(osqp)
 
 add_executable(basic_gravity src/basic_gravity.cc)
 target_compile_options(basic_gravity PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-
 target_link_libraries(
   basic_gravity
   mujoco::mujoco
@@ -110,6 +109,19 @@ target_link_libraries(
   osqp::osqp
 )
 target_include_directories(basic_gravity PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+
+add_executable(findbug src/findbug.cpp)
+target_compile_options(findbug PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+target_link_libraries(
+  findbug
+  mujoco::mujoco
+  glfw
+  Threads::Threads
+  pinocchio
+  osqp::osqp
+)
+target_include_directories(findbug PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 
 add_executable(basic src/basic.cc)

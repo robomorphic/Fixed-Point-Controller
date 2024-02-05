@@ -25,8 +25,8 @@
 
 #include <FixedPoint/fixed_point.hpp>
 
-//typedef FixedPoint<8,8> exp_type;
-typedef float exp_type;
+typedef FixedPoint<12,12> exp_type;
+//typedef float exp_type;
 
 #include <Eigen/Core>
 

@@ -132,6 +132,25 @@ public:
         return temp.template convert<INT_BITS, FRAC_BITS>();
     }
 
+    // *= overload
+    FixedPoint<INT_BITS, FRAC_BITS>& operator*=(FixedPoint<INT_BITS, FRAC_BITS> value)
+    {
+        raw_ *= value.template convert<INT_BITS, FRAC_BITS>().getRaw();
+        return *this;
+    }
+
+    FixedPoint<INT_BITS, FRAC_BITS>& operator*=(int value)
+    {
+        raw_ *= FixedPoint<INT_BITS, FRAC_BITS>(value).getRaw();
+        return *this;
+    }
+
+    FixedPoint<INT_BITS, FRAC_BITS>& operator*=(double value)
+    {
+        raw_ *= FixedPoint<INT_BITS, FRAC_BITS>(value).getRaw();
+        return *this;
+    }
+
 
     /// Addition with an integer
     FixedPoint<INT_BITS, FRAC_BITS> operator +(IntType value) const
@@ -313,6 +332,48 @@ public:
         intermediate /= divisor.getRaw();
 
         return ResultType::createRaw(intermediate);
+    }
+
+    bool isfinite() const
+    {
+        return true;
+    }
+
+    // Divide with double
+    FixedPoint<INT_BITS, FRAC_BITS>
+        operator/(double divisor) const
+    {
+        typedef typename GET_INT_WITH_LENGTH<INT_BITS*2 + FRAC_BITS*2>::RESULT IntermediateType;
+
+        IntermediateType int_frac(1 << FRAC_BITS);
+
+        // Expand the dividend so we don't lose resolution
+        IntermediateType intermediate(raw_ * int_frac);
+        // Shift the dividend. FRAC_BITS2 cancels with the fractional bits in
+        // divisor, and INT_BITS2 adds the required resolution.
+        //intermediate <<= FRAC_BITS + INT_BITS;
+        intermediate /= divisor;
+
+        return FixedPoint<INT_BITS, FRAC_BITS>::createRaw(intermediate);
+    }
+
+    // /= overload
+    FixedPoint<INT_BITS, FRAC_BITS>& operator/=(FixedPoint<INT_BITS, FRAC_BITS> divisor)
+    {
+        typedef typename GET_INT_WITH_LENGTH<INT_BITS*2 + FRAC_BITS*2>::RESULT IntermediateType;
+
+        IntermediateType int_frac(1 << FRAC_BITS);
+
+        // Expand the dividend so we don't lose resolution
+        IntermediateType intermediate(raw_ * int_frac);
+        // Shift the dividend. FRAC_BITS2 cancels with the fractional bits in
+        // divisor, and INT_BITS2 adds the required resolution.
+        //intermediate <<= FRAC_BITS + INT_BITS;
+        intermediate /= divisor.getRaw();
+
+        raw_ = intermediate;
+
+        return *this;
     }
 
     // an overload to be used when this type is converted to a double

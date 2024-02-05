@@ -6,10 +6,15 @@ const std::string urdf_filename = std::string("models/panda.urdf");
 exp_type home_pos[] = {0, 0, 0, -1.57079, 0, 1.57079};
 exp_type fixed_pos[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};
 
-Eigen::VectorXd qpos;
-Eigen::VectorXd qerr;
-Eigen::VectorXd qvel;
-Eigen::VectorXd qacc;
+
+Eigen::Matrix<exp_type, -1, 1> qpos;
+Eigen::Matrix<exp_type, -1, 1> qerr;
+Eigen::Matrix<exp_type, -1, 1> qvel;
+Eigen::Matrix<exp_type, -1, 1> qacc;
+//Eigen::VectorXd qpos;
+//Eigen::VectorXd qerr;
+//Eigen::VectorXd qvel;
+//Eigen::VectorXd qacc;
 OSQPSettings settings;
 c_float q[18]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 c_float P_x[6] = {1, 1, 1, 1, 1, 1};
@@ -236,7 +241,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
     
     // matrix updates start
     auto Minv_temp = -T * pinocchio_data.Minv;
-    Eigen::Matrix<double, 6, 6> Minv = Minv_temp; // do I need this?
+    Eigen::Matrix<exp_type, 6, 6> Minv = Minv_temp; // do I need this?
     
     /*
     c_float A[18][18] = 
@@ -374,7 +379,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
         std::cout << "Curr aim: " << fixed_pos[i] << std::endl << std::endl;
     }
     */
-    ARR_PRINT(qerr, 6)
+    //ARR_PRINT(qerr, 6)
 }
 
 

@@ -19,7 +19,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 # Default to GLVND if available.
 set(CMAKE_POLICY_DEFAULT_CMP0072 NEW)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -ferror-limit=10000")
 
 # This line has to appear before 'PROJECT' in order to be able to disable incremental linking
 set(MSVC_INCREMENTAL_DEFAULT ON)
@@ -95,6 +95,22 @@ target_link_libraries(intn_tests mujoco::mujoco Eigen3::Eigen)
 target_include_directories(intn_tests PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Build samples that require GLFW.
+
+find_package(osqp)
+
+add_executable(basic_gravity src/basic_gravity.cc)
+target_compile_options(basic_gravity PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+
+target_link_libraries(
+  basic_gravity
+  mujoco::mujoco
+  glfw
+  Threads::Threads
+  pinocchio
+  osqp::osqp
+)
+target_include_directories(basic_gravity PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 
 add_executable(basic src/basic.cc)
 target_compile_options(basic PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})

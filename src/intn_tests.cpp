@@ -33,7 +33,7 @@ template<int INT_BITS, int FRAC_BITS> struct Eigen::NumTraits<FixedPoint<INT_BIT
 
 
 
-typedef FixedPoint<5, 4> IntN;
+typedef FixedPoint<8, 8> IntN;
 
 int main() {
     IntN a = 1.5;
@@ -43,6 +43,9 @@ int main() {
 
     IntN d = a * b;
     std::cout << d << std::endl;
+
+    IntN div = a / b;
+    std::cout << div << std::endl;
 
     Eigen::Matrix<IntN, 2, 2> m;
     m << 1, 2, 3, 4;

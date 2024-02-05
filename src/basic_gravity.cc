@@ -1,10 +1,10 @@
-#include "../include/mujoco_exec_helper.hpp"
-#include "../include/util.h"
+#include <mujoco_exec_helper.hpp>
+#include <util.h>
 
-const std::string urdf_filename = std::string("../models/panda.urdf");
+const std::string urdf_filename = std::string("models/panda.urdf");
 
-double home_pos[] = {0, 0, 0, -1.57079, 0, 1.57079};
-double fixed_pos[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};
+exp_type home_pos[] = {0, 0, 0, -1.57079, 0, 1.57079};
+exp_type fixed_pos[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};
 
 Eigen::VectorXd qpos;
 Eigen::VectorXd qerr;
@@ -70,13 +70,13 @@ void mycontroller(const mjModel* m, mjData* d){
     printf("nv: %d\n", m->nv);
     //if( m->nu==m->nv ){
     // 1. Compute the error
-    double error[7] = {0};
+    exp_type error[7] = {0};
     //auto error = std::vector<double>(m->nv);
     for(int i = 0; i < m->nv; i++){
         error[i] = fixed_pos[i] - d->qpos[i];
     }
     // 2. Compute the control input
-    double ctrl[7] = {0};
+    exp_type ctrl[7] = {0};
     //auto ctrl = std::vector<double>(m->nu);
     for(int i = 0; i < m->nu; i++){
         ctrl[i] = 100 * error[i];
@@ -100,10 +100,10 @@ void mycontroller(const mjModel* m, mjData* d){
 
 void my_controller_PD(const mjModel* m, mjData* d){
     //auto start = std::chrono::high_resolution_clock::now();
-    double error[6] = {0};
-    double prev_error[6] = {0};
-    double kp = 1; // Proportional gain
-    double kd = 1;  // Derivative gain
+    exp_type error[6] = {0};
+    exp_type prev_error[6] = {0};
+    exp_type kp = 1; // Proportional gain
+    exp_type kd = 1;  // Derivative gain
 
     // now assign d->qvel to qdot
     for(int i = 0; i < pinocchio_model.nv; i++){
@@ -118,7 +118,7 @@ void my_controller_PD(const mjModel* m, mjData* d){
     }
 
     // 2. Compute the control input using PD controller
-    double ctrl[6] = {0};
+    exp_type ctrl[6] = {0};
     for(int i = 0; i < m->nu; i++){
         ctrl[i] = kp * error[i] + kd * (error[i] - prev_error[i]);
     }
@@ -133,18 +133,22 @@ void my_controller_PD(const mjModel* m, mjData* d){
         prev_error[i] = error[i];
     }
 
+    std::cout << "Calculate rnea" << std::endl;
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
     auto dynamic_drift = pinocchio::rnea(pinocchio_model, pinocchio_data, qpos, qvel, qacc);
+    std::cout << "Calculate rnea done" << std::endl;
     
     // apply the dynamic drift to the control input
     for(int i = 0; i < pinocchio_model.nv; i++){
+        std::cout << "Adding dynamic drift" << std::endl;
         d->ctrl[i] += dynamic_drift[i];
     }
+    std::cout << "Adding dynamic drift done" << std::endl;
     //auto end = std::chrono::high_resolution_clock::now();
     // write it in nanoseconds
     //std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << std::endl;
 
-    ARR_PRINT(error, pinocchio_model.nv)
+    //ARR_PRINT(error, pinocchio_model.nv)
 }
 
 // TODO: need to start OSQP with warm starting in future for better performance
@@ -176,7 +180,7 @@ void qp_preparation(const mjModel* m, mjData* d){
 
 void my_controller_QP(const mjModel* m, mjData* d){
     // controller_benchmark_start
-    auto start = std::chrono::high_resolution_clock::now();
+    //auto start = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < pinocchio_model.nv; i++){
         qpos[i] = d->qpos[i];
         qvel[i] = d->qvel[i];
@@ -380,10 +384,11 @@ void my_controller_QP(const mjModel* m, mjData* d){
 // main function
 int main(int argc, const char** argv) {
 
-    pinocchio::urdf::buildModel(urdf_filename,pinocchio_model);
+    pinocchio::urdf::buildModel(urdf_filename,pinocchio_model_basic);
+    pinocchio_model = pinocchio_model_basic.cast<exp_type>();
     std::cout << "model name: " << pinocchio_model.name << std::endl;
 
-    pinocchio_data = pinocchio::Data(pinocchio_model);
+    pinocchio_data = pinocchio::DataTpl<exp_type>(pinocchio_model);
 
     // check command-line arguments
     if (argc!=2) {
@@ -433,7 +438,7 @@ int main(int argc, const char** argv) {
 
     qp_preparation(m, d);
 
-    mjcb_control = my_controller_QP;
+    mjcb_control = my_controller_PD;
 
     // run main loop, target real-time simulation and 60 fps rendering
     while (!glfwWindowShouldClose(window)) {

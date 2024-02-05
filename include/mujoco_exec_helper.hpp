@@ -7,7 +7,7 @@
 #include <fstream>
 #include <time.h> 
 
-#include "osqp/osqp.h"
+#include <osqp/osqp.h>
 
 #include <GLFW/glfw3.h>
 
@@ -23,10 +23,48 @@
 #include "pinocchio/algorithm/rnea-derivatives.hpp"
 #include "pinocchio/algorithm/aba-derivatives.hpp"
 
+#include <FixedPoint/fixed_point.hpp>
+
+typedef float exp_type;
+
+#include <Eigen/Core>
+
+/*
+ 
+namespace Eigen {
+ 
+template<> struct NumTraits<exp_type>
+ : NumTraits<float> // permits to get the epsilon, dummy_precision, lowest, highest functions
+{
+  typedef exp_type Integer;
+
+  static inline int digits10() { return 0; }
+ 
+  enum {
+    IsComplex = 0,
+    IsInteger = 0,
+    IsSigned = 1,
+    RequireInitialization = 1,
+    ReadCost = 1,
+    AddCost = 3,
+    MulCost = 3
+  };
+};
+ 
+}
+*/
+
+
+template<typename BinaryOp>
+struct Eigen::ScalarBinaryOpTraits<double,float,BinaryOp> { typedef float ReturnType;  };
+template<typename BinaryOp>
+struct Eigen::ScalarBinaryOpTraits<float,double,BinaryOp> { typedef float ReturnType;  };
+
 // Load the urdf model
-pinocchio::Model pinocchio_model;
+pinocchio::ModelTpl<double> pinocchio_model_basic;
+pinocchio::ModelTpl<exp_type> pinocchio_model;
 // Create data required by the algorithms
-pinocchio::Data pinocchio_data;
+pinocchio::DataTpl<exp_type> pinocchio_data;
 
 // MuJoCo data structures
 mjModel* m = NULL;                  // MuJoCo model

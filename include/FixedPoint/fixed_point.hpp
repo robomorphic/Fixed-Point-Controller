@@ -126,7 +126,7 @@ public:
 
         // Convert both operands to result type
         ResultType op1(this->convert<INT_BITS_RES, FRAC_BITS_RES>());
-        ResultType op2(value.convert<INT_BITS_RES, FRAC_BITS_RES>());
+        ResultType op2(value.template convert<INT_BITS_RES, FRAC_BITS_RES>());
 
         // Then the addition is trivial
         return ResultType::createRaw(op1.getRaw() + op2.getRaw());
@@ -135,7 +135,7 @@ public:
     template <int INT_BITS2, int FRAC_BITS2>
     ThisType& operator+=(FixedPoint<INT_BITS2, FRAC_BITS2> value)
     {
-        raw_ += value.convert<INT_BITS, FRAC_BITS>().getRaw();
+        raw_ += value.template convert<INT_BITS, FRAC_BITS>().getRaw();
         return *this;
     }
 
@@ -154,7 +154,7 @@ public:
     template <int INT_BITS2, int FRAC_BITS2>
     ThisType& operator-=(FixedPoint<INT_BITS2, FRAC_BITS2> value)
     {
-        raw_ -= value.convert<INT_BITS, FRAC_BITS>().getRaw();
+        raw_ -= value.template convert<INT_BITS, FRAC_BITS>().getRaw();
         return *this;
     }
 
@@ -172,7 +172,7 @@ public:
 
         // Convert both operands to result type
         ResultType op1(this->convert<INT_BITS_RES, FRAC_BITS_RES>());
-        ResultType op2(value.convert<INT_BITS_RES, FRAC_BITS_RES>());
+        ResultType op2(value.template convert<INT_BITS_RES, FRAC_BITS_RES>());
 
         // Then the addition is trivial
         return ResultType::createRaw(op1.getRaw() - op2.getRaw());
@@ -190,7 +190,7 @@ public:
 
         // Convert both operands to result type
         ResultType op1(this->convert<INT_BITS_RES, FRAC_BITS_RES>());
-        ResultType op2(other.convert<INT_BITS_RES, FRAC_BITS_RES>());
+        ResultType op2(other.template convert<INT_BITS_RES, FRAC_BITS_RES>());
 
         // Then the operation is trivial
         return op1.getRaw() < op2.getRaw();
@@ -208,7 +208,7 @@ public:
 
         // Convert both operands to result type
         ResultType op1(this->convert<INT_BITS_RES, FRAC_BITS_RES>());
-        ResultType op2(other.convert<INT_BITS_RES, FRAC_BITS_RES>());
+        ResultType op2(other.template convert<INT_BITS_RES, FRAC_BITS_RES>());
 
         // Then the operation is trivial
         return op1.getRaw() > op2.getRaw();
@@ -226,7 +226,7 @@ public:
 
         // Convert both operands to result type
         ResultType op1(this->convert<INT_BITS_RES, FRAC_BITS_RES>());
-        ResultType op2(other.convert<INT_BITS_RES, FRAC_BITS_RES>());
+        ResultType op2(other.template convert<INT_BITS_RES, FRAC_BITS_RES>());
 
         // Then the operation is trivial
         return op1.getRaw() >= op2.getRaw();
@@ -244,7 +244,7 @@ public:
 
         // Convert both operands to result type
         ResultType op1(this->convert<INT_BITS_RES, FRAC_BITS_RES>());
-        ResultType op2(other.convert<INT_BITS_RES, FRAC_BITS_RES>());
+        ResultType op2(other.template convert<INT_BITS_RES, FRAC_BITS_RES>());
 
         // Then the operation is trivial
         return op1.getRaw() <= op2.getRaw();
@@ -262,7 +262,7 @@ public:
 
         // Convert both operands to result type
         ResultType op1(this->convert<INT_BITS_RES, FRAC_BITS_RES>());
-        ResultType op2(other.convert<INT_BITS_RES, FRAC_BITS_RES>());
+        ResultType op2(other.template convert<INT_BITS_RES, FRAC_BITS_RES>());
 
         // Then the operation is trivial
         return op1.getRaw() == op2.getRaw();
@@ -280,7 +280,7 @@ public:
 
         // Convert both operands to result type
         ResultType op1(this->convert<INT_BITS_RES, FRAC_BITS_RES>());
-        ResultType op2(other.convert<INT_BITS_RES, FRAC_BITS_RES>());
+        ResultType op2(other.template convert<INT_BITS_RES, FRAC_BITS_RES>());
 
         // Then the operation is trivial
         return op1.getRaw() != op2.getRaw();

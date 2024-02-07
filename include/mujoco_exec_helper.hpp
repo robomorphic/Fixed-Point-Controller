@@ -25,7 +25,7 @@
 
 #include <FixedPoint/fixed_point.hpp>
 
-typedef FixedPoint<8,8> exp_type;
+typedef FixedPoint<8, 8> exp_type;
 //typedef float exp_type;
 
 #include <Eigen/Core>
@@ -64,8 +64,11 @@ struct Eigen::ScalarBinaryOpTraits<exp_type,double,BinaryOp> { typedef exp_type 
 // Load the urdf model
 pinocchio::ModelTpl<double> pinocchio_model_basic;
 pinocchio::ModelTpl<exp_type> pinocchio_model;
+pinocchio::ModelTpl<double> pinocchio_double_model;
 // Create data required by the algorithms
 pinocchio::DataTpl<exp_type> pinocchio_data;
+pinocchio::DataTpl<double> pinocchio_double_data;
+
 
 // MuJoCo data structures
 mjModel* m = NULL;                  // MuJoCo model

@@ -7,10 +7,14 @@ exp_type home_pos[] = {0, 0, 0, -1.57079, 0, 1.57079};
 exp_type fixed_pos[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};
 
 
-Eigen::Matrix<exp_type, -1, 1> qpos;
-Eigen::Matrix<exp_type, -1, 1> qerr;
-Eigen::Matrix<exp_type, -1, 1> qvel;
-Eigen::Matrix<exp_type, -1, 1> qacc;
+Eigen::Matrix<exp_type, 6, 1> qpos;
+Eigen::Matrix<exp_type, 6, 1> qerr;
+Eigen::Matrix<exp_type, 6, 1> qvel;
+Eigen::Matrix<exp_type, 6, 1> qacc;
+Eigen::Matrix<double, 6, 1> qpos_double;
+Eigen::Matrix<double, 6, 1> qerr_double;
+Eigen::Matrix<double, 6, 1> qvel_double;
+Eigen::Matrix<double, 6, 1> qacc_double;
 //Eigen::VectorXd qpos;
 //Eigen::VectorXd qerr;
 //Eigen::VectorXd qvel;
@@ -181,6 +185,33 @@ void qp_preparation(const mjModel* m, mjData* d){
 
     file.open(file_name);
     program_start = std::chrono::high_resolution_clock::now();
+}
+
+void only_drift(const mjModel* m, mjData* d){
+    for(int i = 0; i < pinocchio_model.nv; i++){
+        qpos[i] = d->qpos[i];
+        qvel[i] = d->qvel[i];
+        qacc[i] = d->qacc[i];
+        qpos_double[i] = d->qpos[i];
+        qvel_double[i] = d->qvel[i];
+        qacc_double[i] = d->qacc[i];
+    }
+    // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
+    auto dynamic_drift = pinocchio::rnea(pinocchio_model, pinocchio_data, qpos, qvel, qacc);
+    // apply the dynamic drift to the control input
+    std::cout << "Adding dynamic drift " << std::endl;
+    for(int i = 0; i < pinocchio_model.nv; i++){
+        d->ctrl[i] = dynamic_drift[i];
+        std::cout << d->ctrl[i] << " ";
+    }
+    std::cout << std::endl;
+
+    auto dynamic_drift_double = pinocchio::rnea(pinocchio_double_model, pinocchio_double_data, qpos_double, qvel_double, qacc_double);
+    std::cout << "Actual dynamic drift " << std::endl;
+    for(int i = 0; i < pinocchio_model.nv; i++){
+        std::cout << dynamic_drift_double[i] << " ";
+    }
+    std::cout << std::endl;
 }
 
 void my_controller_QP(const mjModel* m, mjData* d){
@@ -383,9 +414,6 @@ void my_controller_QP(const mjModel* m, mjData* d){
 }
 
 
-
-
-
 // main function
 int main(int argc, const char** argv) {
 
@@ -394,6 +422,9 @@ int main(int argc, const char** argv) {
     std::cout << "model name: " << pinocchio_model.name << std::endl;
 
     pinocchio_data = pinocchio::DataTpl<exp_type>(pinocchio_model);
+
+    pinocchio::urdf::buildModel(urdf_filename,pinocchio_double_model);
+    pinocchio_double_data = pinocchio::Data(pinocchio_double_model);
 
     // check command-line arguments
     if (argc!=2) {
@@ -443,7 +474,7 @@ int main(int argc, const char** argv) {
 
     qp_preparation(m, d);
 
-    mjcb_control = my_controller_QP;
+    mjcb_control = only_drift;
 
     // run main loop, target real-time simulation and 60 fps rendering
     while (!glfwWindowShouldClose(window)) {

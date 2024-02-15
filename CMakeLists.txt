@@ -72,6 +72,10 @@ if(MUJOCO_HARDEN)
   endif()
 endif()
 
+SET(CMAKE_CXX_FLAGS_DEBUG "-O0")
+SET(CMAKE_C_FLAGS_DEBUG "-O0")
+
+
 # Build sample binaries
 add_executable(compile src/compile.cc)
 target_compile_options(compile PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
@@ -89,10 +93,14 @@ add_executable(pinocchio_example src/pinocchio_example.cc)
 target_compile_options(pinocchio_example PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
 target_link_libraries(pinocchio_example mujoco::mujoco pinocchio)
 
+
+find_package(boost)
+
+
 add_executable(intn_tests src/intn_tests.cpp src/intn.cpp)
 target_compile_options(intn_tests PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(intn_tests mujoco::mujoco Eigen3::Eigen)
-target_include_directories(intn_tests PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(intn_tests mujoco::mujoco Eigen3::Eigen ${Boost_LIBRARIES})
+target_include_directories(intn_tests PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
 # Build samples that require GLFW.
 
@@ -107,8 +115,24 @@ target_link_libraries(
   Threads::Threads
   pinocchio
   osqp::osqp
+  ${Boost_LIBRARIES}
 )
-target_include_directories(basic_gravity PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(basic_gravity PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
+
+
+add_executable(trajectory_controller src/trajectory_controller.cc)
+target_compile_options(trajectory_controller PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+target_link_libraries(
+  trajectory_controller
+  mujoco::mujoco
+  glfw
+  Threads::Threads
+  pinocchio
+  osqp::osqp
+  ${Boost_LIBRARIES}
+)
+target_include_directories(trajectory_controller PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
+
 
 
 add_executable(findbug src/findbug.cpp)

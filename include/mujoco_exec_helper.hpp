@@ -25,8 +25,10 @@
 
 #include <FixedPoint/fixed_point.hpp>
 
-typedef FixedPoint<8, 8> exp_type;
-//typedef float exp_type;
+OverflowMode overflow_mode = OverflowMode::CLAMP;
+
+//typedef FixedPoint<8, 8> exp_type;
+typedef double exp_type;
 
 #include <Eigen/Core>
 
@@ -56,10 +58,13 @@ template<> struct NumTraits<exp_type>
 
 */
 
+/*
 template<typename BinaryOp>
 struct Eigen::ScalarBinaryOpTraits<double,exp_type,BinaryOp> { typedef exp_type ReturnType;  };
 template<typename BinaryOp>
 struct Eigen::ScalarBinaryOpTraits<exp_type,double,BinaryOp> { typedef exp_type ReturnType;  };
+*/
+
 
 // Load the urdf model
 pinocchio::ModelTpl<double> pinocchio_model_basic;

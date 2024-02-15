@@ -122,23 +122,23 @@ void my_controller_PD(const mjModel* m, mjData* d){
     }
 
     // 1. Compute the error
-    for(int i = 0; i < m->nv; i++){
+    for(int i = 0; i < 6; i++){
         error[i] = fixed_pos[i] - d->qpos[i];
     }
 
     // 2. Compute the control input using PD controller
     exp_type ctrl[6] = {0};
-    for(int i = 0; i < m->nu; i++){
+    for(int i = 0; i < 6; i++){
         ctrl[i] = kp * error[i] + kd * (error[i] - prev_error[i]);
     }
 
     // 3. Apply the control input
-    for(int i = 0; i < m->nu; i++){
+    for(int i = 0; i < 6; i++){
         d->ctrl[i] = ctrl[i];
     }
 
     // Update previous error for the next iteration
-    for(int i = 0; i < m->nv; i++){
+    for(int i = 0; i < 6; i++){
         prev_error[i] = error[i];
     }
 
@@ -474,7 +474,7 @@ int main(int argc, const char** argv) {
 
     qp_preparation(m, d);
 
-    mjcb_control = only_drift;
+    mjcb_control = my_controller_QP;
 
     // run main loop, target real-time simulation and 60 fps rendering
     while (!glfwWindowShouldClose(window)) {

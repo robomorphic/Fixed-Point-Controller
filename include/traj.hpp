@@ -1,12 +1,14 @@
 #include <math.h>
+#include <mujoco/mujoco.h>
 #include <iostream>
 
 
-bool new_traj = false;
+bool new_traj = true;
+double traj_start_time;
 double traj_timer;
 // traj index must start from 1, otherwise calculate_goal will give incorrect results.
 int traj_index = 1;
-double GOAL_TOLERANCE = 0.1;
+double GOAL_TOLERANCE = 0.01;
 bool went_to_init = false;
 
 double position_array[][6] = {
@@ -211,6 +213,7 @@ void calculate_goal(double* curr_position, double* curr_velocity, double* goal, 
     if(went_to_init == false){
         if(is_close_enough(curr_position, position_array[0])){
             went_to_init = true;
+            traj_start_time = time;
         }
         for(int i = 0; i < 6; i++){
             goal[i] = position_array[0][i];
@@ -220,9 +223,9 @@ void calculate_goal(double* curr_position, double* curr_velocity, double* goal, 
     // current goal is the index traj_index
     // should we move to the next goal?
     double curr_index_time = time_array[traj_index - 1];
-    //std::cout << "time: " << time << std::endl;
+    std::cout << "time is: " << traj_timer << " and traj_index is: " << traj_index << std::endl;
     //std::cout << "curr_index_time: " << curr_index_time << std::endl;
-    if((time > curr_index_time) || (traj_index >= sizeof(time_array)/sizeof(time_array[0]))){
+    if((traj_timer > curr_index_time) || (traj_index >= sizeof(time_array)/sizeof(time_array[0]))){
         traj_index++;
         if(traj_index >= sizeof(time_array)/sizeof(time_array[0])){
             traj_index--; // we need to correct this, otherwise traj_index will go out of bounds
@@ -240,7 +243,7 @@ void calculate_goal(double* curr_position, double* curr_velocity, double* goal, 
 
     double next_index_time = time_array[traj_index];
     double time_diff = next_index_time - curr_index_time;
-    double time_ratio = (time - curr_index_time) / time_diff;
+    double time_ratio = (traj_timer - curr_index_time) / time_diff;
     //std::cout << "time: " << time << std::endl;
     //std::cout << "curr_index_time: " << curr_index_time << std::endl;
     //std::cout << "time ratio: " << time_ratio << std::endl;
@@ -257,5 +260,56 @@ void calculate_goal(double* curr_position, double* curr_velocity, double* goal, 
 }
 
 
+void calculate_goal_vel(double* curr_position, double* curr_velocity, double* goal, double* vel, double time){
+    if(went_to_init == false){
+        if(is_close_enough(curr_position, position_array[0])){
+            went_to_init = true;
+            traj_start_time = time;
+        }
+       for(int i = 0; i < 6; i++){
+            goal[i] = position_array[0][i];
+            vel[i] = velocity_array[0][i];
+        }
+        return;
+    }
+    // current goal is the index traj_index
+    // should we move to the next goal?
+    double curr_index_time = time_array[traj_index - 1];
+    std::cout << "time is: " << traj_timer << " and traj_index is: " << traj_index << std::endl;
+    //std::cout << "curr_index_time: " << curr_index_time << std::endl;
+    if((traj_timer > curr_index_time) || (traj_index >= sizeof(time_array)/sizeof(time_array[0]))){
+        traj_index++;
+        if(traj_index >= sizeof(time_array)/sizeof(time_array[0])){
+            traj_index--; // we need to correct this, otherwise traj_index will go out of bounds
+            // we are done
+            // the goal should be the final goal
+            for(int i = 0; i < 6; i++){
+                goal[i] = position_array[traj_index - 1][i];
+                vel[i] = velocity_array[traj_index - 1][i];
+                //std::cout << "traj_index: " << traj_index << std::endl;
+            }
+            return;
+        }
+        return calculate_goal_vel(curr_position, curr_velocity, goal, vel, time);
+    }
+
+    double next_index_time = time_array[traj_index];
+    double time_diff = next_index_time - curr_index_time;
+    double time_ratio = (traj_timer - curr_index_time) / time_diff;
+    //std::cout << "time: " << time << std::endl;
+    //std::cout << "curr_index_time: " << curr_index_time << std::endl;
+    //std::cout << "time ratio: " << time_ratio << std::endl;
+
+    for(int i = 0; i < 6; i++){
+
+        //std::cout << "1: " << position_array[traj_index][i] << std::endl;
+        //std::cout << "2: " << position_array[traj_index - 1][i] << std::endl;
+        double position_diff = position_array[traj_index][i] - position_array[traj_index - 1][i];
+        //std::cout << "position_diff " << position_diff << std::endl;
+        goal[i] = position_array[traj_index - 1][i] + position_diff * time_ratio;
+        vel[i] = velocity_array[traj_index - 1][i];
+        //std::cout << "returning goal " << goal[i] << std::endl;
+    }
+}
 
 

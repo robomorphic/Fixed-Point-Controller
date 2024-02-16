@@ -6,10 +6,10 @@ const std::string urdf_filename = std::string("models/panda.urdf");
 
 exp_type home_pos[] = {0, 0, 0, -1.57079, 0, 1.57079};
 exp_type fixed_pos[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};
+//exp_type goal[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};
 
 
 Eigen::Matrix<exp_type, 6, 1> qpos;
-Eigen::Matrix<exp_type, 6, 1> qerr;
 Eigen::Matrix<exp_type, 6, 1> qvel;
 Eigen::Matrix<exp_type, 6, 1> qacc;
 Eigen::Matrix<double, 6, 1> qpos_double;
@@ -21,10 +21,10 @@ Eigen::Matrix<double, 6, 1> qacc_double;
 //Eigen::VectorXd qvel;
 //Eigen::VectorXd qacc;
 OSQPSettings settings;
-c_float q[18]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-c_float P_x[6] = {1, 1, 1, 1, 1, 1};
-c_int P_i[6] = {0, 1, 2, 3, 4, 5};
-c_int P_p[19] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
+c_float q[18]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // we'll fill this later
+c_float P_x[12] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+c_int P_i[12] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+c_int P_p[19] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 12, 12, 12, 12, 12};
 float T = 1.0/60.0;
 OSQPWorkspace *work;
 OSQPData      *osqp_data;
@@ -76,9 +76,12 @@ auto program_start = std::chrono::high_resolution_clock::now();
 void my_controller_PD(const mjModel* m, mjData* d){
     //auto start = std::chrono::high_resolution_clock::now();
     if(new_traj){
-        traj_timer = d->time;
+        traj_timer = 0.0;
+        traj_start_time = 0.0;
         new_traj = false;
+        went_to_init = false;
     }
+    traj_timer = d->time - traj_start_time;
     
     exp_type error[6] = {0};
     exp_type prev_error[6] = {0};
@@ -107,25 +110,23 @@ void my_controller_PD(const mjModel* m, mjData* d){
     // 1. Compute the error
     for(int i = 0; i < 6; i++){
         error[i] = curr_goal[i] - d->qpos[i];
-        std::cout << "current goal: " << curr_goal[i] << std::endl;
     }
     
 
     // 2. Compute the control input using PD controller
     exp_type ctrl[6] = {0};
-    for(int i = 0; i < m->nu; i++){
+    for(int i = 0; i < 6; i++){
         ctrl[i] = kp * error[i] + kd * (error[i] - prev_error[i]);
     }
 
     // 3. Apply the control input
-    for(int i = 0; i < m->nu; i++){
+    for(int i = 0; i < 6; i++){
         d->ctrl[i] = ctrl[i];
-        std::cout << "control input: " << d->ctrl[i] << std::endl;
     }
     
 
     // Update previous error for the next iteration
-    for(int i = 0; i < m->nv; i++){
+    for(int i = 0; i < 6; i++){
         prev_error[i] = error[i];
     }
 
@@ -141,9 +142,176 @@ void my_controller_PD(const mjModel* m, mjData* d){
     //std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << std::endl;
 
     //ARR_PRINT(error, pinocchio_model.nv)
-    delete[] curr_goal;
 }
 
+// TODO: need to start OSQP with warm starting in future for better performance
+void qp_preparation(const mjModel* m, mjData* d){
+    qpos.resize(pinocchio_model.nv);
+    qvel.resize(pinocchio_model.nv);
+    qacc.resize(pinocchio_model.nv);
+
+    osqp_set_default_settings(&settings);
+    settings.verbose = false;
+    settings.max_iter = 1000;
+
+    osqp_data = (OSQPData *)c_malloc(sizeof(OSQPData));
+
+    osqp_data->n = NUM_VAR; // number of variables(this is actually 6, but the program must see it as 18 I guess)
+    osqp_data->m = NUM_CONSTR; // number of constraints
+    osqp_data->P = csc_matrix(osqp_data->n, osqp_data->n, NUM_VAR, P_x, P_i, P_p);
+    osqp_data->q = q;
+    osqp_data->A = csc_matrix(osqp_data->m, osqp_data->n, 18+36, A_x_temp, A_i, A_p);
+    osqp_data->l = l_u_temp;
+    osqp_data->u = l_u_temp;
+
+    osqp_setup(&work, osqp_data, &settings);
+
+    file.open(file_name);
+    program_start = std::chrono::high_resolution_clock::now();
+}
+
+void my_controller_QP(const mjModel* m, mjData* d){
+    if(new_traj){
+        traj_timer = 0.0;
+        traj_start_time = 0.0;
+        new_traj = false;
+        went_to_init = false;
+    }
+    traj_timer = d->time - traj_start_time;
+    double curr_pos[6] = {0};
+    double curr_vel[6] = {0};
+    // controller_benchmark_start
+    //auto start = std::chrono::high_resolution_clock::now();
+    for(int i = 0; i < pinocchio_model.nv; i++){
+        qpos[i] = d->qpos[i];
+        curr_pos[i] = d->qpos[i];
+        qvel[i] = d->qvel[i];
+        curr_vel[i] = d->qvel[i];
+        qacc[i] = d->qacc[i];
+    }
+    double* curr_goal = new double[6];
+    double* curr_goal_vel = new double[6];
+    calculate_goal_vel(curr_pos, curr_vel, curr_goal, curr_goal_vel, d->time);
+
+    // pinocchio derivatives start
+    // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
+    auto dynamic_drift = pinocchio::rnea(pinocchio_model, pinocchio_data, qpos, qvel, qacc);
+
+    pinocchio::computeABADerivatives(pinocchio_model, pinocchio_data, qpos, qvel, qacc);
+    // pinocchio derivatives end
+
+    // apply the dynamic drift to the control input
+    for(int i = 0; i < pinocchio_model.nv; i++){
+        d->ctrl[i] = dynamic_drift[i];
+    }
+    
+    // matrix updates start
+    auto Minv_temp = -T * pinocchio_data.Minv;
+    Eigen::Matrix<exp_type, 6, 6> Minv = Minv_temp; // do I need this?
+    
+    // Now we need to write A in sparse format, just like P
+    c_float A_x[60] = 
+    {
+        1, 1, 1, 1, 1, 1, 
+        -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1,
+        Minv(0, 0), Minv(1, 0), Minv(2, 0), Minv(3, 0), Minv(4, 0), Minv(5, 0), 1,
+        Minv(0, 1), Minv(1, 1), Minv(2, 1), Minv(3, 1), Minv(4, 1), Minv(5, 1), 1,
+        Minv(0, 2), Minv(1, 2), Minv(2, 2), Minv(3, 2), Minv(4, 2), Minv(5, 2), 1,
+        Minv(0, 3), Minv(1, 3), Minv(2, 3), Minv(3, 3), Minv(4, 3), Minv(5, 3), 1,
+        Minv(0, 4), Minv(1, 4), Minv(2, 4), Minv(3, 4), Minv(4, 4), Minv(5, 4), 1,
+        Minv(0, 5), Minv(1, 5), Minv(2, 5), Minv(3, 5), Minv(4, 5), Minv(5, 5), 1,    
+    };
+
+    // l and u will be = [data_ddq_dq * q; speed_limits; torque_limits]
+    // I guess we can say that speed_limits and torque_limits are 50 for now...
+    c_float l[18] = {
+        qpos[0],
+        qpos[1],
+        qpos[2],
+        qpos[3],
+        qpos[4],
+        qpos[5],
+        qvel[0],
+        qvel[1],
+        qvel[2],
+        qvel[3],
+        qvel[4],
+        qvel[5],
+        -hard_limit, -hard_limit, -hard_limit, -hard_limit, -hard_limit, -hard_limit
+    };
+    c_float u[18] = {
+        qpos[0],
+        qpos[1],
+        qpos[2],
+        qpos[3],
+        qpos[4],
+        qpos[5],
+        qvel[0],
+        qvel[1],
+        qvel[2],
+        qvel[3],
+        qvel[4],
+        qvel[5],
+        hard_limit, hard_limit, hard_limit, hard_limit, hard_limit, hard_limit
+    };
+
+    c_float q[18] = {
+        -curr_goal[0],
+        -curr_goal[1],
+        -curr_goal[2],
+        -curr_goal[3],
+        -curr_goal[4],
+        -curr_goal[5],
+        -curr_goal_vel[0],
+        -curr_goal_vel[1],
+        -curr_goal_vel[2],
+        -curr_goal_vel[3],
+        -curr_goal_vel[4],
+        -curr_goal_vel[5],
+        0, 0, 0, 0, 0, 0
+    };
+    
+    // TODO: this currently replaces ALL of A. 
+    // We only need to chance Minv part, but I don't want to deal with that right now.
+    osqp_update_A(work, A_x, NULL, 60);
+    osqp_update_bounds(work, l, u);
+    osqp_update_lin_cost(work, q);
+    // matrix updates end
+
+    // Solve Problem
+    // osqp solve start
+    osqp_solve(work);
+    // osqp solve end
+
+    // check if the problem is solved
+    if(work->info->status_val != 1){
+        std::cout << "QP problem not solved!" << std::endl;
+        return;
+    }
+    for(int i = 0; i < 6; i++){
+        d->ctrl[i] += work->solution->x[12+i];
+    }
+    // controller_benchmark_end
+    // take program_start - end, if it took longer than 15 seconds, then close the file and exit the program
+    //if(std::chrono::duration_cast<std::chrono::seconds>(end - program_start).count() > 15){
+    //    file.close();
+    //    exit(0);
+    //}
+
+    /*
+    std::cout << "Completed control input: " << std::endl;
+    for(int i = 0; i < 18; i++){
+        std::cout << work->solution->x[i] << std::endl;
+    }
+    for(int i = 0; i < 6; i++){
+        std::cout << "Solution: " << -work->solution->x[12+i] << std::endl;
+        std::cout << "Error: " << qerr[i] << std::endl;
+        std::cout << "Curr qpos: " << qpos[i] << std::endl;
+        std::cout << "Curr aim: " << fixed_pos[i] << std::endl << std::endl;
+    }
+    */
+    //ARR_PRINT(qerr, 6)
+}
 
 
 // main function
@@ -204,9 +372,9 @@ int main(int argc, const char** argv) {
     glfwSetMouseButtonCallback(window, mouse_button);
     glfwSetScrollCallback(window, scroll);
 
-    //qp_preparation(m, d);
+    qp_preparation(m, d);
 
-    mjcb_control = my_controller_PD;
+    mjcb_control = my_controller_QP;
 
     // run main loop, target real-time simulation and 60 fps rendering
     while (!glfwWindowShouldClose(window)) {

@@ -5,10 +5,10 @@ const std::string urdf_filename = std::string("models/panda.urdf");
 
 exp_type home_pos[] = {0, 0, 0, -1.57079, 0, 1.57079};
 exp_type fixed_pos[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};
+exp_type goal[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};
 
 
 Eigen::Matrix<exp_type, 6, 1> qpos;
-Eigen::Matrix<exp_type, 6, 1> qerr;
 Eigen::Matrix<exp_type, 6, 1> qvel;
 Eigen::Matrix<exp_type, 6, 1> qacc;
 Eigen::Matrix<double, 6, 1> qpos_double;
@@ -20,7 +20,7 @@ Eigen::Matrix<double, 6, 1> qacc_double;
 //Eigen::VectorXd qvel;
 //Eigen::VectorXd qacc;
 OSQPSettings settings;
-c_float q[18]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+c_float q[18]   = {-goal[0], -goal[1], -goal[2], -goal[3], -goal[4], -goal[5], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 c_float P_x[6] = {1, 1, 1, 1, 1, 1};
 c_int P_i[6] = {0, 1, 2, 3, 4, 5};
 c_int P_p[19] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
@@ -163,7 +163,6 @@ void my_controller_PD(const mjModel* m, mjData* d){
 // TODO: need to start OSQP with warm starting in future for better performance
 void qp_preparation(const mjModel* m, mjData* d){
     qpos.resize(pinocchio_model.nv);
-    qerr.resize(pinocchio_model.nv);
     qvel.resize(pinocchio_model.nv);
     qacc.resize(pinocchio_model.nv);
 
@@ -187,33 +186,6 @@ void qp_preparation(const mjModel* m, mjData* d){
     program_start = std::chrono::high_resolution_clock::now();
 }
 
-void only_drift(const mjModel* m, mjData* d){
-    for(int i = 0; i < pinocchio_model.nv; i++){
-        qpos[i] = d->qpos[i];
-        qvel[i] = d->qvel[i];
-        qacc[i] = d->qacc[i];
-        qpos_double[i] = d->qpos[i];
-        qvel_double[i] = d->qvel[i];
-        qacc_double[i] = d->qacc[i];
-    }
-    // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
-    auto dynamic_drift = pinocchio::rnea(pinocchio_model, pinocchio_data, qpos, qvel, qacc);
-    // apply the dynamic drift to the control input
-    std::cout << "Adding dynamic drift " << std::endl;
-    for(int i = 0; i < pinocchio_model.nv; i++){
-        d->ctrl[i] = dynamic_drift[i];
-        std::cout << d->ctrl[i] << " ";
-    }
-    std::cout << std::endl;
-
-    auto dynamic_drift_double = pinocchio::rnea(pinocchio_double_model, pinocchio_double_data, qpos_double, qvel_double, qacc_double);
-    std::cout << "Actual dynamic drift " << std::endl;
-    for(int i = 0; i < pinocchio_model.nv; i++){
-        std::cout << dynamic_drift_double[i] << " ";
-    }
-    std::cout << std::endl;
-}
-
 void my_controller_QP(const mjModel* m, mjData* d){
     // controller_benchmark_start
     //auto start = std::chrono::high_resolution_clock::now();
@@ -221,7 +193,6 @@ void my_controller_QP(const mjModel* m, mjData* d){
         qpos[i] = d->qpos[i];
         qvel[i] = d->qvel[i];
         qacc[i] = d->qacc[i];
-        qerr[i] = d->qpos[i] - fixed_pos[i];
     }
     // pinocchio derivatives start
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
@@ -234,83 +205,11 @@ void my_controller_QP(const mjModel* m, mjData* d){
     for(int i = 0; i < pinocchio_model.nv; i++){
         d->ctrl[i] = dynamic_drift[i];
     }
-
-    /*
-    c_float P[18][18] = 
-    {
-        {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    };
-    // print P in a Python array form
-    std::cout << "P: " << std::endl;
-    std::cout << "[";
-    for(int i = 0; i < 18; i++){
-        std::cout << "[";
-        for(int j = 0; j < 18; j++){
-            std::cout << P[i][j] << ", ";
-        }
-        std::cout << "], ";
-    }
-    std::cout << "]" << std::endl;
-    */
     
     // matrix updates start
     auto Minv_temp = -T * pinocchio_data.Minv;
     Eigen::Matrix<exp_type, 6, 6> Minv = Minv_temp; // do I need this?
     
-    /*
-    c_float A[18][18] = 
-    {
-        {1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -T, 0, 0, 0, 0, 0, 0},
-        
-        {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, Minv(0, 0), Minv(0, 1), Minv(0, 2), Minv(0, 3), Minv(0, 4), Minv(0, 5)},
-        {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, Minv(1, 0), Minv(1, 1), Minv(1, 2), Minv(1, 3), Minv(1, 4), Minv(1, 5)},
-        {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, Minv(2, 0), Minv(2, 1), Minv(2, 2), Minv(2, 3), Minv(2, 4), Minv(2, 5)},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, Minv(3, 0), Minv(3, 1), Minv(3, 2), Minv(3, 3), Minv(3, 4), Minv(3, 5)},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, Minv(4, 0), Minv(4, 1), Minv(4, 2), Minv(4, 3), Minv(4, 4), Minv(4, 5)},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, Minv(5, 0), Minv(5, 1), Minv(5, 2), Minv(5, 3), Minv(5, 4), Minv(5, 5)},
-        
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    };
-    
-    // print A in a Python array form
-    std::cout << "A: " << std::endl;
-    std::cout << "{";
-    for(int i = 0; i < 18; i++){
-        std::cout << "{";
-        for(int j = 0; j < 18; j++){
-            std::cout << A[i][j] << ", ";
-        }
-        std::cout << "}, " << std::endl;
-    }
-    std::cout << "}" << std::endl;
-    */
     // Now we need to write A in sparse format, just like P
     c_float A_x[60] = 
     {
@@ -327,12 +226,12 @@ void my_controller_QP(const mjModel* m, mjData* d){
     // l and u will be = [data_ddq_dq * q; speed_limits; torque_limits]
     // I guess we can say that speed_limits and torque_limits are 50 for now...
     c_float l[18] = {
-        qerr[0],
-        qerr[1],
-        qerr[2],
-        qerr[3],
-        qerr[4],
-        qerr[5],
+        qpos[0],
+        qpos[1],
+        qpos[2],
+        qpos[3],
+        qpos[4],
+        qpos[5],
         qvel[0],
         qvel[1],
         qvel[2],
@@ -342,12 +241,12 @@ void my_controller_QP(const mjModel* m, mjData* d){
         -hard_limit, -hard_limit, -hard_limit, -hard_limit, -hard_limit, -hard_limit
     };
     c_float u[18] = {
-        qerr[0],
-        qerr[1],
-        qerr[2],
-        qerr[3],
-        qerr[4],
-        qerr[5],
+        qpos[0],
+        qpos[1],
+        qpos[2],
+        qpos[3],
+        qpos[4],
+        qpos[5],
         qvel[0],
         qvel[1],
         qvel[2],
@@ -356,21 +255,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
         qvel[5],
         hard_limit, hard_limit, hard_limit, hard_limit, hard_limit, hard_limit
     };
-    /*
-    // print l and u in a Python array form
-    std::cout << "l: " << std::endl;
-    std::cout << "[";
-    for(int i = 0; i < 18; i++){
-        std::cout << l[i] << ", ";
-    }
-    std::cout << "]" << std::endl;
-    std::cout << "u: " << std::endl;
-    std::cout << "[";
-    for(int i = 0; i < 18; i++){
-        std::cout << u[i] << ", ";
-    }
-    std::cout << "]" << std::endl;
-    */
+
     
     // TODO: this currently replaces ALL of A. 
     // We only need to chance Minv part, but I don't want to deal with that right now.

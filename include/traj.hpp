@@ -4,14 +4,10 @@
 
 #include <mujoco/mujoco.h>
 
+#include <config.hpp>
 
-bool save_positions = false;
-std::string exp_directory = "exp/02-19/";
-// the file is exp_directory + INT_BITS + "_" + FRAC_BITS + ".txt"
+
 std::ofstream exp_file;
-bool began_writing_file = false;
-    
-// went_to_init = false;
     
 struct {
     // this is used to signal that a new trajectory has been loaded, true when a new trajectory is loaded, false otherwise
@@ -219,29 +215,38 @@ double velocity_array[][6] = {
 double time_array[] = {0.0, 0.101329198, 0.156840625, 0.199926638, 0.23689734, 0.269975514, 0.300229744, 0.328519609, 0.355298434, 0.381217711, 0.406871602, 0.433359403, 0.460776701, 0.489226719, 0.518819725, 0.549671516, 0.581900399, 0.615621898, 0.650940154, 0.687934831, 0.726642544, 0.767032839, 0.808981194, 0.852536999, 0.898921201, 0.947954478, 0.999353193, 1.052783566, 1.112511004, 1.187417545, 1.323901279, 1.422162749, 1.468360046, 1.505188223, 1.537495926, 1.566948788, 1.5945787280000001, 1.621791041, 1.64993258, 1.679012349, 1.709043695, 1.740045833, 1.774697223, 1.816227911, 1.8708662280000001, 2.017110476, 2.203041877, 2.282522406, 2.341306573, 2.394995157, 2.447819732, 2.499948268, 2.551336658, 2.601736524, 2.650724474, 2.697771279, 2.743058961, 2.787746599, 2.831274917, 2.873243095, 2.913420999, 2.951723576, 2.988170358, 3.02284665, 3.055873484, 3.087387171, 3.1175266, 3.148820499, 3.181078222, 3.215090332, 3.251408508, 3.2914276, 3.329967415, 3.373984018, 3.429201247, 3.508697725, 3.590871549, 3.6468703270000002, 3.691274331, 3.728931109, 3.7620916749999997, 3.792166812, 3.819704713, 3.847544041, 3.876815147, 3.907881118, 3.941493205, 3.978613185, 4.021555924, 4.076681819, 4.210549882};
 
 
-bool is_close_enough(double* current, double* goal){
+double calc_distance(Eigen::Matrix<exp_type, 6, 1> current, double* goal){
     double total_distance = 0;
     for(int i = 0; i < 6; i++){
         total_distance += pow(current[i] - goal[i], 2);
     }
     total_distance = sqrt(total_distance);
-    if(total_distance > TrajectoryVars.GOAL_TOLERANCE){
-        return false;
-    }
+    return total_distance;
+}
 
-    return true;
+void initialize_output_file(){
+    // create INT_BITS_FRAC_BITS directory if it doesn't exist
+    std::string which_dir = EXPERIMENT_DIRECTORY + std::to_string(INT_BITS) + "_" + std::to_string(FRAC_BITS) + "/";
+    std::filesystem::create_directory(which_dir);
+    std::ofstream exp_file;
+    exp_file.open(which_dir + "data.csv");
+    exp_file << "time, q_1, q_2, q_3, q_4, q_5, q_6\n";
+    // also create a file for configs and other info
+    std::cout << "NOT IMPLEMENTED YET\n" << std::endl;
 }
 
 void save_position(double* curr_position, double time){
-    if(began_writing_file == false){
-        exp_file.open(exp_directory + std::to_string(INT_BITS) + "_" + std::to_string(FRAC_BITS) + ".txt");
-        exp_file << "time, q_1, q_2, q_3, q_4, q_5, q_6\n";
-    }
+    ;
 }
 
-void calculate_goal(double* curr_position, double* curr_velocity, double* goal, double traj_time, double sim_time){
+void calculate_goal(
+    Eigen::Matrix<exp_type, 6, 1> curr_position, 
+    Eigen::Matrix<exp_type, 6, 1> curr_velocity, 
+    double* goal, 
+    double traj_time, 
+    double sim_time){
     if(TrajectoryVars.went_to_init == false){
-        if(is_close_enough(curr_position, position_array[0])){
+        if(calc_distance(curr_position, position_array[0]) < TrajectoryVars.GOAL_TOLERANCE){
             TrajectoryVars.went_to_init = true;
             TrajectoryVars.traj_start_time = sim_time;
         }

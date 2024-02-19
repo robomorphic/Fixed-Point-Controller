@@ -12,104 +12,11 @@ Eigen::Matrix<exp_type, 6, 1> qpos;
 Eigen::Matrix<exp_type, 6, 1> qerr;
 Eigen::Matrix<exp_type, 6, 1> qvel;
 Eigen::Matrix<exp_type, 6, 1> qacc;
-Eigen::Matrix<double, 6, 1> qpos_double;
-Eigen::Matrix<double, 6, 1> qerr_double;
-Eigen::Matrix<double, 6, 1> qvel_double;
-Eigen::Matrix<double, 6, 1> qacc_double;
-//Eigen::VectorXd qpos;
-//Eigen::VectorXd qerr;
-//Eigen::VectorXd qvel;
-//Eigen::VectorXd qacc;
-OSQPSettings settings;
-c_float q[18]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-c_float P_x[6] = {1, 1, 1, 1, 1, 1};
-c_int P_i[6] = {0, 1, 2, 3, 4, 5};
-c_int P_p[19] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
-float T = 1.0/60.0;
+
 OSQPWorkspace *work;
-OSQPData      *osqp_data;
-int NUM_VAR = 18;
-int NUM_CONSTR = 18;
 
-c_int A_i[] = 
-{
-    0, 1, 2, 3, 4, 5, 0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 11,
-    6, 7, 8, 9, 10, 11, 12,
-    6, 7, 8, 9, 10, 11, 13,
-    6, 7, 8, 9, 10, 11, 14,
-    6, 7, 8, 9, 10, 11, 15,
-    6, 7, 8, 9, 10, 11, 16,
-    6, 7, 8, 9, 10, 11, 17,
-};
-c_int A_p[] = 
-{
-    0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 25, 32, 39, 46, 53, 60
-};
-
-c_float A_x_temp[60] = 
-{
-    1, 1, 1, 1, 1, 1, 
-    -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1,
-    -0.0818755, -0.00405389, 0.0362688, 0.000639645, 0.0568308, -0.00106394, 1,
-    -0.00405389, -0.0181714, -0.000157237, -0.0216632, 0.0120603, 0.0356071, 1, 
-    0.0362688, -0.000157237, -0.0329305, -0.00377167, -0.00277871, 0.00582964, 1, 
-    0.000639645, -0.0216632, -0.00377167, -0.0569292, 0.0371989, 0.119298, 1, 
-    0.0568308, 0.0120603, -0.00277871, 0.0371989, -0.59978, -0.0822872, 1, 
-    -0.00106394, 0.0356071, 0.00582964, 0.119298, -0.0822872, -0.784927,  1,
-};
-
-c_float l_u_temp[18] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -50, -50, -50, -50, -50, -50
-};
-
-float hard_limit = 50;
-
-
-std::string file_name = "../exp/01-29/dklj.txt";
-// open a file, we will write the data to this file
-std::ofstream file;
-
-// start time
-auto program_start = std::chrono::high_resolution_clock::now();
-
-
-// simple controller
-void mycontroller(const mjModel* m, mjData* d){
-    printf("time: %f\n", d->time);
-    printf("nu: %d\n", m->nu);
-    printf("nv: %d\n", m->nv);
-    //if( m->nu==m->nv ){
-    // 1. Compute the error
-    exp_type error[7] = {0};
-    //auto error = std::vector<double>(m->nv);
-    for(int i = 0; i < m->nv; i++){
-        error[i] = fixed_pos[i] - d->qpos[i];
-    }
-    // 2. Compute the control input
-    exp_type ctrl[7] = {0};
-    //auto ctrl = std::vector<double>(m->nu);
-    for(int i = 0; i < m->nu; i++){
-        ctrl[i] = 100 * error[i];
-    }
-    // 3. Apply the control input
-    for(int i = 0; i < m->nu; i++){
-        d->ctrl[i] = ctrl[i];
-    }
-
-    /*
-    printf("actuator_limits: \n");
-    for(int i = 0; i < m->nu; i++){
-        printf("%f %f\n", m->actuator_ctrlrange[2*i], m->actuator_ctrlrange[2*i+1]);
-    }
-    printf("force_limits: \n");
-    for(int i = 0; i < m->nu; i++){
-        printf("%f %f\n", m->actuator_forcerange[2*i], m->actuator_forcerange[2*i+1]);
-    }
-    */
-}
 
 void my_controller_PD(const mjModel* m, mjData* d){
-    //auto start = std::chrono::high_resolution_clock::now();
     exp_type error[6] = {0};
     exp_type prev_error[6] = {0};
     exp_type kp = 1; // Proportional gain
@@ -154,11 +61,7 @@ void my_controller_PD(const mjModel* m, mjData* d){
         d->ctrl[i] += dynamic_drift[i];
     }
     std::cout << "Adding dynamic drift done" << std::endl;
-    //auto end = std::chrono::high_resolution_clock::now();
-    // write it in nanoseconds
-    //std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << std::endl;
 
-    //ARR_PRINT(error, pinocchio_model.nv)
 }
 
 // TODO: need to start OSQP with warm starting in future for better performance
@@ -168,11 +71,50 @@ void qp_preparation(const mjModel* m, mjData* d){
     qvel.resize(pinocchio_model.nv);
     qacc.resize(pinocchio_model.nv);
 
+    c_int A_i[] = 
+    {
+        0, 1, 2, 3, 4, 5, 0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 11,
+        6, 7, 8, 9, 10, 11, 12,
+        6, 7, 8, 9, 10, 11, 13,
+        6, 7, 8, 9, 10, 11, 14,
+        6, 7, 8, 9, 10, 11, 15,
+        6, 7, 8, 9, 10, 11, 16,
+        6, 7, 8, 9, 10, 11, 17,
+    };
+    c_int A_p[] = 
+    {
+        0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 25, 32, 39, 46, 53, 60
+    };
+    c_float A_x_temp[60] = 
+    {
+        1, 1, 1, 1, 1, 1, 
+        -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1,
+        -0.0818755, -0.00405389, 0.0362688, 0.000639645, 0.0568308, -0.00106394, 1,
+        -0.00405389, -0.0181714, -0.000157237, -0.0216632, 0.0120603, 0.0356071, 1, 
+        0.0362688, -0.000157237, -0.0329305, -0.00377167, -0.00277871, 0.00582964, 1, 
+        0.000639645, -0.0216632, -0.00377167, -0.0569292, 0.0371989, 0.119298, 1, 
+        0.0568308, 0.0120603, -0.00277871, 0.0371989, -0.59978, -0.0822872, 1, 
+        -0.00106394, 0.0356071, 0.00582964, 0.119298, -0.0822872, -0.784927,  1,
+    };
+    c_float l_u_temp[18] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -50, -50, -50, -50, -50, -50
+    };
+
+
+    OSQPSettings settings;
     osqp_set_default_settings(&settings);
     settings.verbose = false;
     settings.max_iter = 1000;
 
-    osqp_data = (OSQPData *)c_malloc(sizeof(OSQPData));
+    OSQPData* osqp_data = (OSQPData *)c_malloc(sizeof(OSQPData));
+
+    c_float q[18]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    c_float P_x[6] = {1, 1, 1, 1, 1, 1};
+    c_int P_i[6] = {0, 1, 2, 3, 4, 5};
+    c_int P_p[19] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
+
+    int NUM_VAR = 18;
+    int NUM_CONSTR = 18;    
 
     osqp_data->n = NUM_VAR; // number of variables(this is actually 6, but the program must see it as 18 I guess)
     osqp_data->m = NUM_CONSTR; // number of constraints
@@ -183,67 +125,24 @@ void qp_preparation(const mjModel* m, mjData* d){
     osqp_data->u = l_u_temp;
 
     osqp_setup(&work, osqp_data, &settings);
-
-    file.open(file_name);
-    program_start = std::chrono::high_resolution_clock::now();
 }
 
-void only_drift(const mjModel* m, mjData* d){
-    for(int i = 0; i < pinocchio_model.nv; i++){
-        qpos[i] = d->qpos[i];
-        qvel[i] = d->qvel[i];
-        qacc[i] = d->qacc[i];
-        qpos_double[i] = d->qpos[i];
-        qvel_double[i] = d->qvel[i];
-        qacc_double[i] = d->qacc[i];
-    }
-    // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
-    auto dynamic_drift = pinocchio::rnea(pinocchio_model, pinocchio_data, qpos, qvel, qacc);
-    // apply the dynamic drift to the control input
-    std::cout << "Adding dynamic drift " << std::endl;
-    for(int i = 0; i < pinocchio_model.nv; i++){
-        d->ctrl[i] = dynamic_drift[i];
-        std::cout << d->ctrl[i] << " ";
-    }
-    std::cout << std::endl;
 
-    auto dynamic_drift_double = pinocchio::rnea(pinocchio_double_model, pinocchio_double_data, qpos_double, qvel_double, qacc_double);
-    std::cout << "Actual dynamic drift " << std::endl;
-    for(int i = 0; i < pinocchio_model.nv; i++){
-        std::cout << dynamic_drift_double[i] << " ";
-    }
-    std::cout << std::endl;
-}
 
 void my_controller_QP(const mjModel* m, mjData* d){
     double traj_time = d->time - TrajectoryVars.traj_start_time;
-    double curr_pos[6] = {0};
-    double curr_vel[6] = {0};
     // controller_benchmark_start
     //auto start = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < pinocchio_model.nv; i++){
         qpos[i] = d->qpos[i];
-        curr_pos[i] = d->qpos[i];
         qvel[i] = d->qvel[i];
-        curr_vel[i] = d->qvel[i];
         qacc[i] = d->qacc[i];
-        //qerr[i] = d->qpos[i] - fixed_pos[i];
     }
     double curr_goal[6] = {0};
-    calculate_goal(curr_pos, curr_vel, curr_goal, traj_time, d->time);
+    calculate_goal(qpos, qvel, curr_goal, traj_time, d->time);
     for(int i = 0; i < 6; i++){
-        qerr[i] = curr_pos[i] - curr_goal[i];
+        qerr[i] = qpos[i] - curr_goal[i];
     }
-    //std::cout << "goal is: " << std::endl;
-    //for(int i = 0; i < 6; i++){
-    //    std::cout << curr_goal[i] << " ";
-    //}
-    //std::cout << std::endl;
-    //std::cout << "error is: " << std::endl;
-    //for(int i = 0; i < 6; i++){
-    //    std::cout << qerr[i] << "\t";
-    //}
-    //std::cout << std::endl;
 
     // pinocchio derivatives start
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
@@ -258,7 +157,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
     }
     
     // matrix updates start
-    auto Minv_temp = -T * pinocchio_data.Minv;
+    auto Minv_temp = -TIME_STEP * pinocchio_data.Minv;
     Eigen::Matrix<exp_type, 6, 6> Minv = Minv_temp; // do I need this?
     
     
@@ -290,7 +189,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
         qvel[3],
         qvel[4],
         qvel[5],
-        -hard_limit, -hard_limit, -hard_limit, -hard_limit, -hard_limit, -hard_limit
+        -TORQUE_HARD_LIMIT, -TORQUE_HARD_LIMIT, -TORQUE_HARD_LIMIT, -TORQUE_HARD_LIMIT, -TORQUE_HARD_LIMIT, -TORQUE_HARD_LIMIT
     };
     c_float u[18] = {
         qerr[0],
@@ -305,23 +204,8 @@ void my_controller_QP(const mjModel* m, mjData* d){
         qvel[3],
         qvel[4],
         qvel[5],
-        hard_limit, hard_limit, hard_limit, hard_limit, hard_limit, hard_limit
+        TORQUE_HARD_LIMIT, TORQUE_HARD_LIMIT, TORQUE_HARD_LIMIT, TORQUE_HARD_LIMIT, TORQUE_HARD_LIMIT, TORQUE_HARD_LIMIT
     };
-    /*
-    // print l and u in a Python array form
-    std::cout << "l: " << std::endl;
-    std::cout << "[";
-    for(int i = 0; i < 18; i++){
-        std::cout << l[i] << ", ";
-    }
-    std::cout << "]" << std::endl;
-    std::cout << "u: " << std::endl;
-    std::cout << "[";
-    for(int i = 0; i < 18; i++){
-        std::cout << u[i] << ", ";
-    }
-    std::cout << "]" << std::endl;
-    */
     
     // TODO: this currently replaces ALL of A. 
     // We only need to chance Minv part, but I don't want to deal with that right now.
@@ -343,25 +227,6 @@ void my_controller_QP(const mjModel* m, mjData* d){
         d->ctrl[i] += work->solution->x[12+i];
     }
     // controller_benchmark_end
-    // take program_start - end, if it took longer than 15 seconds, then close the file and exit the program
-    //if(std::chrono::duration_cast<std::chrono::seconds>(end - program_start).count() > 15){
-    //    file.close();
-    //    exit(0);
-    //}
-
-    /*
-    std::cout << "Completed control input: " << std::endl;
-    for(int i = 0; i < 18; i++){
-        std::cout << work->solution->x[i] << std::endl;
-    }
-    for(int i = 0; i < 6; i++){
-        std::cout << "Solution: " << -work->solution->x[12+i] << std::endl;
-        std::cout << "Error: " << qerr[i] << std::endl;
-        std::cout << "Curr qpos: " << qpos[i] << std::endl;
-        std::cout << "Curr aim: " << fixed_pos[i] << std::endl << std::endl;
-    }
-    */
-    //ARR_PRINT(qerr, 6)
 }
 
 
@@ -423,6 +288,8 @@ int main(int argc, const char** argv) {
     glfwSetMouseButtonCallback(window, mouse_button);
     glfwSetScrollCallback(window, scroll);
 
+    initialize_output_file();
+
     qp_preparation(m, d);
 
     mjcb_control = my_controller_QP;
@@ -434,7 +301,7 @@ int main(int argc, const char** argv) {
         //  this loop will finish on time for the next frame to be rendered at 60 fps.
         //  Otherwise add a cpu timer and exit this loop when it is time to render.
         mjtNum simstart = d->time;
-        while (d->time - simstart < T) {
+        while (d->time - simstart < TIME_STEP) {
             //ARR_PRINT(d->ctrl, m->nu);
             mj_step(m, d);
             // print the control input

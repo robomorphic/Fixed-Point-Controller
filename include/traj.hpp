@@ -1,15 +1,34 @@
 #include <math.h>
-#include <mujoco/mujoco.h>
 #include <iostream>
+#include <fstream>
+
+#include <mujoco/mujoco.h>
 
 
-bool new_traj = true;
-double traj_start_time;
-double traj_timer;
-// traj index must start from 1, otherwise calculate_goal will give incorrect results.
-int traj_index = 1;
-double GOAL_TOLERANCE = 0.01;
-bool went_to_init = false;
+bool save_positions = false;
+std::string exp_directory = "exp/02-19/";
+// the file is exp_directory + INT_BITS + "_" + FRAC_BITS + ".txt"
+std::ofstream exp_file;
+bool began_writing_file = false;
+    
+// went_to_init = false;
+    
+struct {
+    // this is used to signal that a new trajectory has been loaded, true when a new trajectory is loaded, false otherwise
+    bool new_traj = true; 
+    // in some experiments the trajectory following may start at a different position, 
+    // therefore we first need to make sure that the robot is at the correct position before starting the trajectory, 
+    // this variable makes sure that the time goals for the trajectory aligns
+    double traj_start_time;
+    // traj index must start from 1, otherwise calculate_goal will give incorrect results. 
+    int traj_index = 1;
+    // This is tolerance for the joint space
+    double GOAL_TOLERANCE = 0.1;
+    bool went_to_init = false;
+
+
+} TrajectoryVars;
+
 
 double position_array[][6] = {
 {1.4066548095005627, -1.0403173854057077, -0.6233616747861418, -2.152026195913708, -0.6077382184158601, 1.3023911968178346},
@@ -201,115 +220,57 @@ double time_array[] = {0.0, 0.101329198, 0.156840625, 0.199926638, 0.23689734, 0
 
 
 bool is_close_enough(double* current, double* goal){
+    double total_distance = 0;
     for(int i = 0; i < 6; i++){
-        if(std::abs(current[i] - goal[i]) > GOAL_TOLERANCE){
-            return false;
-        }
+        total_distance += pow(current[i] - goal[i], 2);
     }
+    total_distance = sqrt(total_distance);
+    if(total_distance > TrajectoryVars.GOAL_TOLERANCE){
+        return false;
+    }
+
     return true;
 }
 
-void calculate_goal(double* curr_position, double* curr_velocity, double* goal, double time){
-    if(went_to_init == false){
+void save_position(double* curr_position, double time){
+    if(began_writing_file == false){
+        exp_file.open(exp_directory + std::to_string(INT_BITS) + "_" + std::to_string(FRAC_BITS) + ".txt");
+        exp_file << "time, q_1, q_2, q_3, q_4, q_5, q_6\n";
+    }
+}
+
+void calculate_goal(double* curr_position, double* curr_velocity, double* goal, double traj_time, double sim_time){
+    if(TrajectoryVars.went_to_init == false){
         if(is_close_enough(curr_position, position_array[0])){
-            went_to_init = true;
-            traj_start_time = time;
+            TrajectoryVars.went_to_init = true;
+            TrajectoryVars.traj_start_time = sim_time;
         }
         for(int i = 0; i < 6; i++){
             goal[i] = position_array[0][i];
         }
         return;
     }
-    // current goal is the index traj_index
-    // should we move to the next goal?
-    double curr_index_time = time_array[traj_index - 1];
-    std::cout << "time is: " << traj_timer << " and traj_index is: " << traj_index << std::endl;
-    //std::cout << "curr_index_time: " << curr_index_time << std::endl;
-    if((traj_timer > curr_index_time) || (traj_index >= sizeof(time_array)/sizeof(time_array[0]))){
-        traj_index++;
-        if(traj_index >= sizeof(time_array)/sizeof(time_array[0])){
-            traj_index--; // we need to correct this, otherwise traj_index will go out of bounds
-            // we are done
-            // the goal should be the final goal
+    double curr_index_time = time_array[TrajectoryVars.traj_index - 1];
+    if((traj_time > curr_index_time) || (TrajectoryVars.traj_index >= sizeof(time_array)/sizeof(time_array[0]))){
+        TrajectoryVars.traj_index++;
+        if(TrajectoryVars.traj_index >= sizeof(time_array)/sizeof(time_array[0])){
+            TrajectoryVars.traj_index--; // we need to correct traj_index, otherwise traj_index will go out of bounds
+            // we are done, the goal should be the final goal
             for(int i = 0; i < 6; i++){
-                goal[i] = position_array[traj_index - 1][i];
-                //std::cout << "traj_index: " << traj_index << std::endl;
-                //std::cout << "returning goal: " << goal[i] << std::endl;
+                goal[i] = position_array[TrajectoryVars.traj_index - 1][i];
             }
             return;
         }
-        return calculate_goal(curr_position, curr_velocity, goal, time);
+        return calculate_goal(curr_position, curr_velocity, goal, traj_time, sim_time);
     }
 
-    double next_index_time = time_array[traj_index];
+    double next_index_time = time_array[TrajectoryVars.traj_index];
     double time_diff = next_index_time - curr_index_time;
-    double time_ratio = (traj_timer - curr_index_time) / time_diff;
-    //std::cout << "time: " << time << std::endl;
-    //std::cout << "curr_index_time: " << curr_index_time << std::endl;
-    //std::cout << "time ratio: " << time_ratio << std::endl;
+    double time_ratio = (traj_time - curr_index_time) / time_diff;
 
     for(int i = 0; i < 6; i++){
-
-        //std::cout << "1: " << position_array[traj_index][i] << std::endl;
-        //std::cout << "2: " << position_array[traj_index - 1][i] << std::endl;
-        double position_diff = position_array[traj_index][i] - position_array[traj_index - 1][i];
-        //std::cout << "position_diff " << position_diff << std::endl;
-        goal[i] = position_array[traj_index - 1][i] + position_diff * time_ratio;
-        //std::cout << "returning goal " << goal[i] << std::endl;
+        double position_diff = position_array[TrajectoryVars.traj_index][i] - position_array[TrajectoryVars.traj_index - 1][i];
+        goal[i] = position_array[TrajectoryVars.traj_index - 1][i] + position_diff * time_ratio;
     }
 }
-
-
-void calculate_goal_vel(double* curr_position, double* curr_velocity, double* goal, double* vel, double time){
-    if(went_to_init == false){
-        if(is_close_enough(curr_position, position_array[0])){
-            went_to_init = true;
-            traj_start_time = time;
-        }
-       for(int i = 0; i < 6; i++){
-            goal[i] = position_array[0][i];
-            vel[i] = velocity_array[0][i];
-        }
-        return;
-    }
-    // current goal is the index traj_index
-    // should we move to the next goal?
-    double curr_index_time = time_array[traj_index - 1];
-    std::cout << "time is: " << traj_timer << " and traj_index is: " << traj_index << std::endl;
-    //std::cout << "curr_index_time: " << curr_index_time << std::endl;
-    if((traj_timer > curr_index_time) || (traj_index >= sizeof(time_array)/sizeof(time_array[0]))){
-        traj_index++;
-        if(traj_index >= sizeof(time_array)/sizeof(time_array[0])){
-            traj_index--; // we need to correct this, otherwise traj_index will go out of bounds
-            // we are done
-            // the goal should be the final goal
-            for(int i = 0; i < 6; i++){
-                goal[i] = position_array[traj_index - 1][i];
-                vel[i] = velocity_array[traj_index - 1][i];
-                //std::cout << "traj_index: " << traj_index << std::endl;
-            }
-            return;
-        }
-        return calculate_goal_vel(curr_position, curr_velocity, goal, vel, time);
-    }
-
-    double next_index_time = time_array[traj_index];
-    double time_diff = next_index_time - curr_index_time;
-    double time_ratio = (traj_timer - curr_index_time) / time_diff;
-    //std::cout << "time: " << time << std::endl;
-    //std::cout << "curr_index_time: " << curr_index_time << std::endl;
-    //std::cout << "time ratio: " << time_ratio << std::endl;
-
-    for(int i = 0; i < 6; i++){
-
-        //std::cout << "1: " << position_array[traj_index][i] << std::endl;
-        //std::cout << "2: " << position_array[traj_index - 1][i] << std::endl;
-        double position_diff = position_array[traj_index][i] - position_array[traj_index - 1][i];
-        //std::cout << "position_diff " << position_diff << std::endl;
-        goal[i] = position_array[traj_index - 1][i] + position_diff * time_ratio;
-        vel[i] = velocity_array[traj_index - 1][i];
-        //std::cout << "returning goal " << goal[i] << std::endl;
-    }
-}
-
 

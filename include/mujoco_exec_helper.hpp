@@ -25,10 +25,7 @@
 
 #include <FixedPoint/fixed_point.hpp>
 
-OverflowMode overflow_mode = OverflowMode::CLAMP;
-
-//typedef FixedPoint<8, 8> exp_type;
-typedef double exp_type;
+#include <config.hpp>
 
 #include <Eigen/Core>
 

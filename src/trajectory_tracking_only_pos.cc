@@ -216,14 +216,7 @@ void only_drift(const mjModel* m, mjData* d){
 }
 
 void my_controller_QP(const mjModel* m, mjData* d){
-    if(new_traj){
-        traj_timer = 0.0;
-        traj_start_time = 0.0;
-        new_traj = false;
-        went_to_init = false;
-        traj_index = 1;
-    }
-    traj_timer = d->time - traj_start_time;
+    double traj_time = d->time - TrajectoryVars.traj_start_time;
     double curr_pos[6] = {0};
     double curr_vel[6] = {0};
     // controller_benchmark_start
@@ -237,7 +230,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
         //qerr[i] = d->qpos[i] - fixed_pos[i];
     }
     double curr_goal[6] = {0};
-    calculate_goal(curr_pos, curr_vel, curr_goal, traj_timer);
+    calculate_goal(curr_pos, curr_vel, curr_goal, traj_time, d->time);
     for(int i = 0; i < 6; i++){
         qerr[i] = curr_pos[i] - curr_goal[i];
     }

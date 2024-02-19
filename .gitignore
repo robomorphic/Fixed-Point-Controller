@@ -12,3 +12,5 @@ compile_commands.json
 lib/**
 cmake/tmp-cxx-standard.cpp
 pinocchio.pc
+MUJOCO_LOG.TXT
+mujoco_samples.pc

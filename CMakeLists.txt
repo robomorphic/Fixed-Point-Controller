@@ -106,6 +106,20 @@ target_include_directories(intn_tests PUBLIC /usr/local/include ${CMAKE_CURRENT_
 
 find_package(osqp)
 
+add_executable(trajectory_tracking_only_pos src/trajectory_tracking_only_pos.cc)
+target_compile_options(trajectory_tracking_only_pos PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+target_link_libraries(
+  trajectory_tracking_only_pos
+  mujoco::mujoco
+  glfw
+  Threads::Threads
+  pinocchio
+  osqp::osqp
+  ${Boost_LIBRARIES}
+)
+target_include_directories(trajectory_tracking_only_pos PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
+
+
 add_executable(basic_gravity src/basic_gravity.cc)
 target_compile_options(basic_gravity PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
 target_link_libraries(
@@ -118,6 +132,20 @@ target_link_libraries(
   ${Boost_LIBRARIES}
 )
 target_include_directories(basic_gravity PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
+
+add_executable(osqp_type_form src/osqp_type_form.cc)
+target_compile_options(osqp_type_form PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+target_link_libraries(
+  osqp_type_form
+  mujoco::mujoco
+  glfw
+  Threads::Threads
+  pinocchio
+  osqp::osqp
+  ${Boost_LIBRARIES}
+)
+target_include_directories(osqp_type_form PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
+
 
 
 add_executable(trajectory_controller src/trajectory_controller.cc)

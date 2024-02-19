@@ -97,12 +97,6 @@ target_link_libraries(pinocchio_example mujoco::mujoco pinocchio)
 find_package(boost)
 
 
-add_executable(intn_tests src/intn_tests.cpp src/intn.cpp)
-target_compile_options(intn_tests PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(intn_tests mujoco::mujoco Eigen3::Eigen ${Boost_LIBRARIES})
-target_include_directories(intn_tests PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
-
-# Build samples that require GLFW.
 
 find_package(osqp)
 

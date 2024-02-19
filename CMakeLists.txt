@@ -77,11 +77,6 @@ SET(CMAKE_C_FLAGS_DEBUG "-O0")
 
 
 # Build sample binaries
-add_executable(compile src/compile.cc)
-target_compile_options(compile PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(compile Threads::Threads)
-target_link_options(compile PRIVATE ${MUJOCO_SAMPLE_LINK_OPTIONS})
-target_link_libraries(compile mujoco::mujoco)
 
 # This mujoco is built by me and installed in /Users/alp/mujoco/install
 set(MUJOCO_FOLDER /Users/alp/mujoco/install/lib/cmake)
@@ -89,13 +84,8 @@ find_package(mujoco REQUIRED PATHS ${MUJOCO_FOLDER})
 find_package(pinocchio REQUIRED) # cmake installs this in _deps
 find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation
 
-add_executable(pinocchio_example src/pinocchio_example.cc)
-target_compile_options(pinocchio_example PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(pinocchio_example mujoco::mujoco pinocchio)
-
 
 find_package(boost)
-
 
 
 find_package(osqp)
@@ -114,10 +104,10 @@ target_link_libraries(
 target_include_directories(trajectory_tracking_only_pos PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
 
-add_executable(basic_gravity src/basic_gravity.cc)
-target_compile_options(basic_gravity PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+add_executable(first_controllers src/first_controllers.cc)
+target_compile_options(first_controllers PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
 target_link_libraries(
-  basic_gravity
+  first_controllers
   mujoco::mujoco
   glfw
   Threads::Threads
@@ -125,7 +115,7 @@ target_link_libraries(
   osqp::osqp
   ${Boost_LIBRARIES}
 )
-target_include_directories(basic_gravity PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
+target_include_directories(first_controllers PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
 add_executable(osqp_type_form src/osqp_type_form.cc)
 target_compile_options(osqp_type_form PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
@@ -142,53 +132,8 @@ target_include_directories(osqp_type_form PUBLIC /usr/local/include ${CMAKE_CURR
 
 
 
-add_executable(trajectory_controller src/trajectory_controller.cc)
-target_compile_options(trajectory_controller PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(
-  trajectory_controller
-  mujoco::mujoco
-  glfw
-  Threads::Threads
-  pinocchio
-  osqp::osqp
-  ${Boost_LIBRARIES}
-)
-target_include_directories(trajectory_controller PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
 
-
-add_executable(findbug src/findbug.cpp)
-target_compile_options(findbug PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(
-  findbug
-  mujoco::mujoco
-  glfw
-  Threads::Threads
-  pinocchio
-  osqp::osqp
-)
-target_include_directories(findbug PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-
-add_executable(basic src/basic.cc)
-target_compile_options(basic PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(
-  basic
-  mujoco::mujoco
-  glfw
-  Threads::Threads
-)
-target_link_options(basic PRIVATE ${MUJOCO_SAMPLE_LINK_OPTIONS})
-
-add_executable(record src/record.cc src/array_safety.h)
-target_compile_options(record PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(
-  record
-  mujoco::mujoco
-  glfw
-  Threads::Threads
-)
-target_link_options(record PRIVATE ${MUJOCO_SAMPLE_LINK_OPTIONS})
 
 if(APPLE AND MUJOCO_BUILD_MACOS_FRAMEWORKS)
   embed_in_bundle(basic simulate)

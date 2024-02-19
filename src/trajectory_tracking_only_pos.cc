@@ -8,15 +8,14 @@ exp_type home_pos[] = {0, 0, 0, -1.57079, 0, 1.57079};
 exp_type fixed_pos[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};
 
 
-Eigen::Matrix<exp_type, 6, 1> qpos;
-Eigen::Matrix<exp_type, 6, 1> qerr;
-Eigen::Matrix<exp_type, 6, 1> qvel;
-Eigen::Matrix<exp_type, 6, 1> qacc;
 
 OSQPWorkspace *work;
 
 
 void my_controller_PD(const mjModel* m, mjData* d){
+    Eigen::Matrix<exp_type, 6, 1> qpos;
+    Eigen::Matrix<exp_type, 6, 1> qvel;
+    Eigen::Matrix<exp_type, 6, 1> qacc;
     exp_type error[6] = {0};
     exp_type prev_error[6] = {0};
     exp_type kp = 1; // Proportional gain
@@ -64,13 +63,8 @@ void my_controller_PD(const mjModel* m, mjData* d){
 
 }
 
-// TODO: need to start OSQP with warm starting in future for better performance
-void qp_preparation(const mjModel* m, mjData* d){
-    qpos.resize(pinocchio_model.nv);
-    qerr.resize(pinocchio_model.nv);
-    qvel.resize(pinocchio_model.nv);
-    qacc.resize(pinocchio_model.nv);
 
+void qp_preparation(const mjModel* m, mjData* d){
     c_int A_i[] = 
     {
         0, 1, 2, 3, 4, 5, 0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 11,
@@ -128,8 +122,11 @@ void qp_preparation(const mjModel* m, mjData* d){
 }
 
 
-
 void my_controller_QP(const mjModel* m, mjData* d){
+    Eigen::Matrix<exp_type, 6, 1> qpos;
+    Eigen::Matrix<exp_type, 6, 1> qerr;
+    Eigen::Matrix<exp_type, 6, 1> qvel;
+    Eigen::Matrix<exp_type, 6, 1> qacc;
     double traj_time = d->time - TrajectoryVars.traj_start_time;
     // controller_benchmark_start
     //auto start = std::chrono::high_resolution_clock::now();
@@ -291,7 +288,6 @@ int main(int argc, const char** argv) {
     initialize_output_file();
 
     qp_preparation(m, d);
-
     mjcb_control = my_controller_QP;
 
     // run main loop, target real-time simulation and 60 fps rendering
@@ -302,9 +298,7 @@ int main(int argc, const char** argv) {
         //  Otherwise add a cpu timer and exit this loop when it is time to render.
         mjtNum simstart = d->time;
         while (d->time - simstart < TIME_STEP) {
-            //ARR_PRINT(d->ctrl, m->nu);
             mj_step(m, d);
-            // print the control input
         }
 
         // get framebuffer viewport

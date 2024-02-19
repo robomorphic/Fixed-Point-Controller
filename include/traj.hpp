@@ -6,8 +6,6 @@
 
 #include <config.hpp>
 
-
-
 struct {
     // this is used to signal that a new trajectory has been loaded, true when a new trajectory is loaded, false otherwise
     bool new_traj = true; 
@@ -132,14 +130,41 @@ void initialize_output_file(){
     // create INT_BITS_FRAC_BITS directory if it doesn't exist
     std::string which_dir = EXPERIMENT_DIRECTORY + std::to_string(INT_BITS) + "_" + std::to_string(FRAC_BITS) + "/";
     std::filesystem::create_directory(which_dir);
-    OUTPUT_FILE.open(which_dir + "data.csv");
-    OUTPUT_FILE << "time, q_1, q_2, q_3, q_4, q_5, q_6\n";
+    DATA_FILE.open(which_dir + "data.csv");
+    DATA_FILE << "time, q_1, q_2, q_3, q_4, q_5, q_6, qdot_1, qdot_2, qdot_3, qdot_4, qdot_5, qdot_6, u_1, u_2, u_3, u_4, u_5, u_6\n";
     // also create a file for configs and other info
-    std::cout << "NOT IMPLEMENTED YET\n" << std::endl;
+    std::ofstream config_file;
+    config_file.open(which_dir + "config.txt");
+    config_file << "INT_BITS: " << INT_BITS << "\n";
+    config_file << "FRAC_BITS: " << FRAC_BITS << "\n";
+    if(OVERFLOW_MODE == OverflowMode::CLAMP){
+        config_file << "OVERFLOW_MODE: CLAMP\n";
+    } else {
+        config_file << "OVERFLOW_MODE: SATURATE\n";
+    }
+    config_file << "TORQUE_HARD_LIMIT: " << TORQUE_HARD_LIMIT << "\n";
+    config_file << "TIME_STEP: " << TIME_STEP << "\n";
 }
 
-void save_position(double* curr_position, double time){
-    ;
+void save_position(
+    Eigen::Matrix<exp_type, 6, 1> curr_position, 
+    Eigen::Matrix<exp_type, 6, 1> curr_vel, 
+    Eigen::Matrix<exp_type, 6, 1> u, 
+    double time){
+    if(TrajectoryVars.went_to_init == false) return;
+
+    DATA_FILE << time << ", ";
+    for(int i = 0; i < 6; i++){
+        DATA_FILE << curr_position[i] << ", ";
+    }
+    for(int i = 0; i < 6; i++){
+        DATA_FILE << curr_vel[i] << ", ";
+    }
+    for(int i = 0; i < 6; i++){
+        DATA_FILE << u[i] << ", ";
+    }
+    DATA_FILE << "\n";
+    return;
 }
 
 void calculate_goal(

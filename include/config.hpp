@@ -12,13 +12,11 @@ typedef FixedPoint<INT_BITS, FRAC_BITS> exp_type;
 // typedef double exp_type;
 
 std::string EXPERIMENT_DIRECTORY = "exp/02-19/";
-std::ofstream OUTPUT_FILE;
+std::ofstream DATA_FILE;
 
 double TORQUE_HARD_LIMIT = 50;
 
 double TIME_STEP = 0.01;
-
-
 
 
 #endif

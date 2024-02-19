@@ -135,6 +135,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
         qvel[i] = d->qvel[i];
         qacc[i] = d->qacc[i];
     }
+    save_position(qpos, qvel, qacc, traj_time);
     double curr_goal[6] = {0};
     calculate_goal(qpos, qvel, curr_goal, traj_time, d->time);
     for(int i = 0; i < 6; i++){
@@ -290,6 +291,7 @@ int main(int argc, const char** argv) {
     qp_preparation(m, d);
     mjcb_control = my_controller_QP;
 
+    mjtNum simstart = d->time;
     // run main loop, target real-time simulation and 60 fps rendering
     while (!glfwWindowShouldClose(window)) {
         // advance interactive simulation for 1/60 sec

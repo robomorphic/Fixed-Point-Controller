@@ -15,9 +15,11 @@ struct {
     double traj_start_time;
     // traj index must start from 1, otherwise calculate_goal will give incorrect results. 
     int traj_index = 1;
-    // This is tolerance for the joint space
-    double GOAL_TOLERANCE = 0.1;
     bool went_to_init = false;
+    
+    // This is tolerance for the joint space
+    const double GOAL_TOLERANCE = 0.1;
+    const double EXP_HARD_STOP_TIME = 40.0;
 } TrajectoryVars;
 
 
@@ -333,6 +335,12 @@ void initialize_output_file(){
     }
     config_file << "TORQUE_HARD_LIMIT: " << TORQUE_HARD_LIMIT << "\n";
     config_file << "TIME_STEP: " << TIME_STEP << "\n";
+}
+
+void stop_sim_if_needed(double time){
+    if(time > TrajectoryVars.EXP_HARD_STOP_TIME){
+        exit(0);
+    }
 }
 
 void save_position(

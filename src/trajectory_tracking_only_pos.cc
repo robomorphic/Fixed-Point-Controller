@@ -128,6 +128,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
     Eigen::Matrix<exp_type, 6, 1> qvel;
     Eigen::Matrix<exp_type, 6, 1> qacc;
     double traj_time = d->time - TrajectoryVars.traj_start_time;
+    stop_sim_if_needed(traj_time);
     // controller_benchmark_start
     //auto start = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < pinocchio_model.nv; i++){

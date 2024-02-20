@@ -291,7 +291,6 @@ int main(int argc, const char** argv) {
     qp_preparation(m, d);
     mjcb_control = my_controller_QP;
 
-    mjtNum simstart = d->time;
     // run main loop, target real-time simulation and 60 fps rendering
     while (!glfwWindowShouldClose(window)) {
         // advance interactive simulation for 1/60 sec

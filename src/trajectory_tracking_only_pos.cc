@@ -129,6 +129,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
     Eigen::Matrix<exp_type, 6, 1> qacc;
     double traj_time = d->time - TrajectoryVars.traj_start_time;
     stop_sim_if_needed(traj_time);
+    std::cout << traj_time << std::endl;
     // controller_benchmark_start
     //auto start = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < pinocchio_model.nv; i++){
@@ -275,17 +276,17 @@ int main(int argc, const char** argv) {
     mjv_defaultCamera(&cam);
     mjv_defaultOption(&opt);
     mjv_defaultScene(&scn);
-    mjr_defaultContext(&con);
+    // mjr_defaultContext(&con);
 
     // create scene and context
     mjv_makeScene(m, &scn, 2000);
     mjr_makeContext(m, &con, mjFONTSCALE_150);
 
     // install GLFW mouse and keyboard callbacks
-    glfwSetKeyCallback(window, keyboard);
-    glfwSetCursorPosCallback(window, mouse_move);
-    glfwSetMouseButtonCallback(window, mouse_button);
-    glfwSetScrollCallback(window, scroll);
+    // glfwSetKeyCallback(window, keyboard);
+    // glfwSetCursorPosCallback(window, mouse_move);
+    // glfwSetMouseButtonCallback(window, mouse_button);
+    // glfwSetScrollCallback(window, scroll);
 
     initialize_output_file();
 
@@ -293,29 +294,30 @@ int main(int argc, const char** argv) {
     mjcb_control = my_controller_QP;
 
     // run main loop, target real-time simulation and 60 fps rendering
-    while (!glfwWindowShouldClose(window)) {
+    //while (!glfwWindowShouldClose(window)) {
+    while(true) {
         // advance interactive simulation for 1/60 sec
         //  Assuming MuJoCo can simulate faster than real-time, which it usually can,
         //  this loop will finish on time for the next frame to be rendered at 60 fps.
         //  Otherwise add a cpu timer and exit this loop when it is time to render.
-        mjtNum simstart = d->time;
-        while (d->time - simstart < TIME_STEP) {
-            mj_step(m, d);
-        }
+        //mjtNum simstart = d->time;
+        //while (d->time - simstart < TIME_STEP) {
+        //    mj_step(m, d);
+        //}
+        mj_step(m, d);
 
-        // get framebuffer viewport
-        mjrRect viewport = {0, 0, 0, 0};
-        glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
+        // mjrRect viewport = {0, 0, 0, 0};
+        // glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
 
         // update scene and render
         mjv_updateScene(m, d, &opt, NULL, &cam, mjCAT_ALL, &scn);
-        mjr_render(viewport, &scn, &con);
-
+        // mjr_render(viewport, &scn, &con);
+    
         // swap OpenGL buffers (blocking call due to v-sync)
-        glfwSwapBuffers(window);
+        // glfwSwapBuffers(window);
 
         // process pending GUI events, call GLFW callbacks
-        glfwPollEvents();
+        // glfwPollEvents();
     }
 
     //free visualization storage
@@ -333,3 +335,6 @@ int main(int argc, const char** argv) {
 
     return 1;
 }
+
+
+

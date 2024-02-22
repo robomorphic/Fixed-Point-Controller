@@ -29,31 +29,6 @@
 
 #include <Eigen/Core>
 
-/*
- 
-namespace Eigen {
- 
-template<> struct NumTraits<exp_type>
- : NumTraits<float> // permits to get the epsilon, dummy_precision, lowest, highest functions
-{
-  typedef exp_type Integer;
-
-  static inline int digits10() { return 0; }
- 
-  enum {
-    IsComplex = 0,
-    IsInteger = 0,
-    IsSigned = 1,
-    RequireInitialization = 1,
-    ReadCost = 1,
-    AddCost = 3,
-    MulCost = 3
-  };
-};
- 
-}
-
-*/
 
 /*
 template<typename BinaryOp>
@@ -66,7 +41,6 @@ struct Eigen::ScalarBinaryOpTraits<exp_type,double,BinaryOp> { typedef exp_type 
 // Load the urdf model
 pinocchio::ModelTpl<double> pinocchio_model_basic;
 pinocchio::ModelTpl<exp_type> pinocchio_model;
-pinocchio::ModelTpl<double> pinocchio_double_model;
 // Create data required by the algorithms
 pinocchio::DataTpl<exp_type> pinocchio_data;
 pinocchio::DataTpl<double> pinocchio_double_data;

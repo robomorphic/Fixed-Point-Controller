@@ -1,17 +1,12 @@
 #include <mujoco_exec_helper.hpp>
-#include <util.h>
 #include <traj.hpp>
 
-const std::string urdf_filename = std::string("models/panda.urdf");
-
-exp_type home_pos[] = {0, 0, 0, -1.57079, 0, 1.57079};
-exp_type fixed_pos[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};
-
-
-
+// It is bad to have a global variable for this, but at the same time there is no way to pass this to the controller function.
 OSQPWorkspace *work;
 
-
+/*
+    This function is just for testing purposes. Can be usable for testing or debugging purposes.
+*/
 void my_controller_PD(const mjModel* m, mjData* d){
     Eigen::Matrix<exp_type, 6, 1> qpos;
     Eigen::Matrix<exp_type, 6, 1> qvel;
@@ -63,7 +58,12 @@ void my_controller_PD(const mjModel* m, mjData* d){
 
 }
 
-
+/*
+    This function starts the OSQP solver and prepares the constant matrices for the QP problem.
+    It can be deleted and its contents can be moved to the my_controller_QP function.
+    But we just need to create the problem and update the matrices when needed.
+    This function is called only once at the beginning of the simulation.
+*/
 void qp_preparation(const mjModel* m, mjData* d){
     c_int A_i[] = 
     {
@@ -121,51 +121,51 @@ void qp_preparation(const mjModel* m, mjData* d){
     osqp_setup(&work, osqp_data, &settings);
 }
 
-
+/*
+    Optimal control function using OSQP solver.
+    For now the robot's DoF is set to 6, be careful with other robots.
+*/
 void my_controller_QP(const mjModel* m, mjData* d){
     Eigen::Matrix<exp_type, 6, 1> qpos;
     Eigen::Matrix<exp_type, 6, 1> qerr;
     Eigen::Matrix<exp_type, 6, 1> qvel;
     Eigen::Matrix<exp_type, 6, 1> qacc;
     double traj_time = d->time - TrajectoryVars.traj_start_time;
+
+    // We stop the simulation after a certain time for our experiments
     stop_sim_if_needed(traj_time);
-    std::cout << traj_time << std::endl;
-    // controller_benchmark_start
-    //auto start = std::chrono::high_resolution_clock::now();
+
     for(int i = 0; i < pinocchio_model.nv; i++){
         qpos[i] = d->qpos[i];
         qvel[i] = d->qvel[i];
         qacc[i] = d->qacc[i];
     }
     save_position(qpos, qvel, qacc, traj_time);
+
     double curr_goal[6] = {0};
     calculate_goal(qpos, qvel, curr_goal, traj_time, d->time);
     for(int i = 0; i < 6; i++){
         qerr[i] = qpos[i] - curr_goal[i];
     }
 
-    // pinocchio derivatives start
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
     auto dynamic_drift = pinocchio::rnea(pinocchio_model, pinocchio_data, qpos, qvel, qacc);
-
+    // this calculates Minv, the inverse of the inertia matrix
     pinocchio::computeABADerivatives(pinocchio_model, pinocchio_data, qpos, qvel, qacc);
-    // pinocchio derivatives end
 
     // apply the dynamic drift to the control input
     for(int i = 0; i < pinocchio_model.nv; i++){
         d->ctrl[i] = dynamic_drift[i];
     }
     
-    // matrix updates start
     auto Minv_temp = -TIME_STEP * pinocchio_data.Minv;
     Eigen::Matrix<exp_type, 6, 6> Minv = Minv_temp; // do I need this?
-    
     
     // Now we need to write A in sparse format, just like P
     c_float A_x[60] = 
     {
         1, 1, 1, 1, 1, 1, 
-        -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1,
+        -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, // Ideally the -1 elements should be -T, but for some reason it doesn't work
         Minv(0, 0), Minv(1, 0), Minv(2, 0), Minv(3, 0), Minv(4, 0), Minv(5, 0), 1,
         Minv(0, 1), Minv(1, 1), Minv(2, 1), Minv(3, 1), Minv(4, 1), Minv(5, 1), 1,
         Minv(0, 2), Minv(1, 2), Minv(2, 2), Minv(3, 2), Minv(4, 2), Minv(5, 2), 1,
@@ -174,8 +174,6 @@ void my_controller_QP(const mjModel* m, mjData* d){
         Minv(0, 5), Minv(1, 5), Minv(2, 5), Minv(3, 5), Minv(4, 5), Minv(5, 5), 1,    
     };
 
-    // l and u will be = [data_ddq_dq * q; speed_limits; torque_limits]
-    // I guess we can say that speed_limits and torque_limits are 50 for now...
     c_float l[18] = {
         qerr[0],
         qerr[1],
@@ -207,16 +205,13 @@ void my_controller_QP(const mjModel* m, mjData* d){
         TORQUE_HARD_LIMIT, TORQUE_HARD_LIMIT, TORQUE_HARD_LIMIT, TORQUE_HARD_LIMIT, TORQUE_HARD_LIMIT, TORQUE_HARD_LIMIT
     };
     
-    // TODO: this currently replaces ALL of A. 
-    // We only need to chance Minv part, but I don't want to deal with that right now.
+    // TODO: this currently replaces ALL ELEMENTS of A. 
+    // We only need to change Minv values, but I don't want to deal with that right now.
     osqp_update_A(work, A_x, NULL, 60);
     osqp_update_bounds(work, l, u);
-    // matrix updates end
 
     // Solve Problem
-    // osqp solve start
     osqp_solve(work);
-    // osqp solve end
 
     // check if the problem is solved
     if(work->info->status_val != 1){
@@ -226,21 +221,19 @@ void my_controller_QP(const mjModel* m, mjData* d){
     for(int i = 0; i < 6; i++){
         d->ctrl[i] += work->solution->x[12+i];
     }
-    // controller_benchmark_end
 }
 
 
 // main function
 int main(int argc, const char** argv) {
-
-    pinocchio::urdf::buildModel(urdf_filename,pinocchio_model_basic);
+    // pinocchio takes panda urdf file and creates a model
+    // because of a bug, pinocchio::ModelTpl<exp_type> cannot be used
+    // Therefore we are creating the robot model with double type and then casting it to exp_type
+    pinocchio::urdf::buildModel(urdf_filename, pinocchio_model_basic);
     pinocchio_model = pinocchio_model_basic.cast<exp_type>();
     std::cout << "model name: " << pinocchio_model.name << std::endl;
 
     pinocchio_data = pinocchio::DataTpl<exp_type>(pinocchio_model);
-
-    pinocchio::urdf::buildModel(urdf_filename,pinocchio_double_model);
-    pinocchio_double_data = pinocchio::Data(pinocchio_double_model);
 
     // check command-line arguments
     if (argc!=2) {
@@ -267,57 +260,60 @@ int main(int argc, const char** argv) {
         mju_error("Could not initialize GLFW");
     }
 
+    // I don't like having these executed even in non-rendering mode
+    // But otherwise the program crashes in different places
+    // This may be problematic in a docker environment
     // create window, make OpenGL context current, request v-sync
     GLFWwindow* window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
-
     // initialize visualization data structures
     mjv_defaultCamera(&cam);
     mjv_defaultOption(&opt);
     mjv_defaultScene(&scn);
     // mjr_defaultContext(&con);
-
     // create scene and context
     mjv_makeScene(m, &scn, 2000);
     mjr_makeContext(m, &con, mjFONTSCALE_150);
 
     // install GLFW mouse and keyboard callbacks
-    // glfwSetKeyCallback(window, keyboard);
-    // glfwSetCursorPosCallback(window, mouse_move);
-    // glfwSetMouseButtonCallback(window, mouse_button);
-    // glfwSetScrollCallback(window, scroll);
-
+    if(USE_RENDER){
+        glfwSetKeyCallback(window, keyboard);
+        glfwSetCursorPosCallback(window, mouse_move);
+        glfwSetMouseButtonCallback(window, mouse_button);
+        glfwSetScrollCallback(window, scroll);
+    }
     initialize_output_file();
 
     qp_preparation(m, d);
     mjcb_control = my_controller_QP;
 
-    // run main loop, target real-time simulation and 60 fps rendering
-    //while (!glfwWindowShouldClose(window)) {
-    while(true) {
-        // advance interactive simulation for 1/60 sec
-        //  Assuming MuJoCo can simulate faster than real-time, which it usually can,
-        //  this loop will finish on time for the next frame to be rendered at 60 fps.
-        //  Otherwise add a cpu timer and exit this loop when it is time to render.
-        //mjtNum simstart = d->time;
-        //while (d->time - simstart < TIME_STEP) {
-        //    mj_step(m, d);
-        //}
-        mj_step(m, d);
+    // The main controller is not exactly 1/T Hz, I believe I can make it 1/T Hz with a global variable
+    if(USE_RENDER){
+        while(true){
+            mjtNum simstart = d->time;
+            while (d->time - simstart < TIME_STEP) {
+                mj_step(m, d);
+            }
+            
+            mjrRect viewport = {0, 0, 0, 0};
+            glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
 
-        // mjrRect viewport = {0, 0, 0, 0};
-        // glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
-
-        // update scene and render
-        mjv_updateScene(m, d, &opt, NULL, &cam, mjCAT_ALL, &scn);
-        // mjr_render(viewport, &scn, &con);
-    
-        // swap OpenGL buffers (blocking call due to v-sync)
-        // glfwSwapBuffers(window);
-
-        // process pending GUI events, call GLFW callbacks
-        // glfwPollEvents();
+            mjv_updateScene(m, d, &opt, NULL, &cam, mjCAT_ALL, &scn);
+        
+            // update scene and render
+            mjr_render(viewport, &scn, &con);
+            // swap OpenGL buffers (blocking call due to v-sync)
+            glfwSwapBuffers(window);
+            // process pending GUI events, call GLFW callbacks
+            glfwPollEvents();
+        }
+    }
+    else{
+        while(true){
+            mj_step(m, d);
+            mjv_updateScene(m, d, &opt, NULL, &cam, mjCAT_ALL, &scn);
+        }
     }
 
     //free visualization storage

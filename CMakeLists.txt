@@ -104,31 +104,31 @@ target_link_libraries(
 target_include_directories(trajectory_tracking_only_pos PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
 
-add_executable(first_controllers src/first_controllers.cc)
-target_compile_options(first_controllers PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(
-  first_controllers
-  mujoco::mujoco
-  glfw
-  Threads::Threads
-  pinocchio
-  osqp::osqp
-  ${Boost_LIBRARIES}
-)
-target_include_directories(first_controllers PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
+#add_executable(first_controllers src/first_controllers.cc)
+#target_compile_options(first_controllers PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+#target_link_libraries(
+#  first_controllers
+#  mujoco::mujoco
+#  glfw
+#  Threads::Threads
+#  pinocchio
+#  osqp::osqp
+#  ${Boost_LIBRARIES}
+#)
+#target_include_directories(first_controllers PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
-add_executable(osqp_type_form src/osqp_type_form.cc)
-target_compile_options(osqp_type_form PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-target_link_libraries(
-  osqp_type_form
-  mujoco::mujoco
-  glfw
-  Threads::Threads
-  pinocchio
-  osqp::osqp
-  ${Boost_LIBRARIES}
-)
-target_include_directories(osqp_type_form PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
+#add_executable(osqp_type_form src/osqp_type_form.cc)
+#target_compile_options(osqp_type_form PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+#target_link_libraries(
+#  osqp_type_form
+#  mujoco::mujoco
+#  glfw
+#  Threads::Threads
+#  pinocchio
+#  osqp::osqp
+#  ${Boost_LIBRARIES}
+#)
+#target_include_directories(osqp_type_form PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
 
 

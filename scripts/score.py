@@ -5,7 +5,7 @@ import glob
 
 import traj
 
-PARENT_DIRECTORY = 'exp/02-19'
+PARENT_DIRECTORY = 'exp/02-20'
 
 
 def calculate_goal(time):
@@ -44,29 +44,45 @@ def calculate_score(row):
     #print("position: ", position)
 
     # calculate the distance
+    #print("goal: ", goal)
+    #print("position: ", position)
     distance = np.linalg.norm(goal - position)
 
     return distance
 
-
-folders = glob.glob(f'{PARENT_DIRECTORY}/*')
-
-print(folders)
-
-# every folder has data.csv, which we will read and score here
-
-for folder in folders:
-    data = pd.read_csv(f'{folder}/data.csv')
-
-    print(data.head())
-
+    
+def calculate_score_from_folder(int_bits, frac_bits):
+    folder = f'{PARENT_DIRECTORY}/{int_bits}_{frac_bits}'
+    try:
+        data = pd.read_csv(f'{folder}/data.csv')
+    except:
+        return float('inf') # there may be an error because the df is empty
+    # is data empty
+    if data.empty:
+        return float('inf')
 
     # calculate the score and print the sum
     data['score'] = data.apply(calculate_score, axis=1)
-    print(folder, data['score'].sum()/len(data))
-    
-    
+    return data['score'].sum()/len(data)
 
 
 
+if __name__ == "__main__":
 
+    folders = glob.glob(f'{PARENT_DIRECTORY}/*')
+
+    print(folders)
+
+    # every folder has data.csv, which we will read and score here
+
+    for folder in folders:
+        data = pd.read_csv(f'{folder}/data.csv')
+        # is data empty
+        if data.empty:
+            print(folder, "inf")
+            continue
+
+        # calculate the score and print the sum
+        data['score'] = data.apply(calculate_score, axis=1)
+        print(folder, data['score'].sum()/len(data))
+        

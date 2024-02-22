@@ -240,7 +240,7 @@ int main(int argc, const char** argv) {
         std::printf(" USAGE:  basic modelfile\n");
         return 0;
     }
-
+    
     // load and compile model
     char error[1000] = "Could not load binary model";
     if (std::strlen(argv[1])>4 && !std::strcmp(argv[1]+std::strlen(argv[1])-4, ".mjb")) {

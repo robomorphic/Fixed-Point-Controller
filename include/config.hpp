@@ -7,11 +7,19 @@
 const std::string urdf_filename = std::string("models/panda.urdf");
 
 const bool USE_RENDER = true;
-const int INT_BITS = 30;
-const int FRAC_BITS = 30;
+const int INT_BITS_STANDARD = 30;
+const int FRAC_BITS_STANDARD = 30;
+
+const int INT_BITS_GRAVITY = 31;
+const int FRAC_BITS_GRAVITY = 31;
+
+const int INT_BITS_FD = 31;
+const int FRAC_BITS_FD = 31;
 
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
-typedef FixedPoint<INT_BITS, FRAC_BITS> exp_type;
+typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
+typedef FixedPoint<INT_BITS_GRAVITY, FRAC_BITS_GRAVITY> exp_type_gravity;
+typedef FixedPoint<INT_BITS_FD, FRAC_BITS_FD> exp_type_fd;
 // typedef double exp_type;
 
 // PD controller uses this position as its target

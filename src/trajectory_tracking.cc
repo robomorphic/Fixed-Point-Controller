@@ -126,19 +126,28 @@ void qp_preparation(const mjModel* m, mjData* d){
     For now the robot's DoF is set to 6, be careful with other robots.
 */
 void my_controller_QP(const mjModel* m, mjData* d){
-    Eigen::Matrix<exp_type, 6, 1> qpos;
-    Eigen::Matrix<exp_type, 6, 1> qerr;
-    Eigen::Matrix<exp_type, 6, 1> qvel;
-    Eigen::Matrix<exp_type, 6, 1> qacc;
+    // bad, but necessary for now
+    Eigen::Matrix<double, 6, 1> qpos;
+    Eigen::Matrix<double, 6, 1> qerr;
+    Eigen::Matrix<double, 6, 1> qvel;
+    Eigen::Matrix<double, 6, 1> qacc;
+    Eigen::Matrix<exp_type_gravity, 6, 1> qpos_gravity;
+    Eigen::Matrix<exp_type_gravity, 6, 1> qerr_gravity;
+    Eigen::Matrix<exp_type_gravity, 6, 1> qvel_gravity;
+    Eigen::Matrix<exp_type_gravity, 6, 1> qacc_gravity;
+    Eigen::Matrix<exp_type_fd, 6, 1> qpos_fd;
+    Eigen::Matrix<exp_type_fd, 6, 1> qerr_fd;
+    Eigen::Matrix<exp_type_fd, 6, 1> qvel_fd;
+    Eigen::Matrix<exp_type_fd, 6, 1> qacc_fd;
     double traj_time = d->time - TrajectoryVars.traj_start_time;
 
     // We stop the simulation after a certain time for our experiments
     stop_sim_if_needed(traj_time);
 
     for(int i = 0; i < pinocchio_model.nv; i++){
-        qpos[i] = d->qpos[i];
-        qvel[i] = d->qvel[i];
-        qacc[i] = d->qacc[i];
+        qpos[i] = qpos_gravity[i] = qpos_fd[i] = d->qpos[i];
+        qvel[i] = qvel_gravity[i] = qvel_fd[i] = d->qvel[i];
+        qacc[i] = qacc_gravity[i] = qacc_fd[i] = d->qacc[i];
     }
     save_position(qpos, qvel, qacc, traj_time);
 
@@ -149,17 +158,17 @@ void my_controller_QP(const mjModel* m, mjData* d){
     }
 
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
-    auto dynamic_drift = pinocchio::rnea(pinocchio_model, pinocchio_data, qpos, qvel, qacc);
+    auto dynamic_drift = pinocchio::rnea(pinocchio_model_gravity, pinocchio_data_gravity, qpos_gravity, qvel_gravity, qacc_gravity);
     // this calculates Minv, the inverse of the inertia matrix
-    pinocchio::computeABADerivatives(pinocchio_model, pinocchio_data, qpos, qvel, qacc);
+    pinocchio::computeABADerivatives(pinocchio_model_fd, pinocchio_data_fd, qpos_fd, qvel_fd, qacc_fd);
 
     // apply the dynamic drift to the control input
     for(int i = 0; i < pinocchio_model.nv; i++){
         d->ctrl[i] = dynamic_drift[i];
     }
     
-    auto Minv_temp = -TIME_STEP * pinocchio_data.Minv;
-    Eigen::Matrix<exp_type, 6, 6> Minv = Minv_temp; // do I need this?
+    auto Minv_temp = -TIME_STEP * pinocchio_data_fd.Minv;
+    Eigen::Matrix<exp_type_fd, 6, 6> Minv = Minv_temp; // do I need this?
     
     // Now we need to write A in sparse format, just like P
     c_float A_x[60] = 
@@ -230,10 +239,14 @@ int main(int argc, const char** argv) {
     // because of a bug, pinocchio::ModelTpl<exp_type> cannot be used
     // Therefore we are creating the robot model with double type and then casting it to exp_type
     pinocchio::urdf::buildModel(urdf_filename, pinocchio_model_basic);
-    pinocchio_model = pinocchio_model_basic.cast<exp_type>();
-    std::cout << "model name: " << pinocchio_model.name << std::endl;
+    pinocchio_model         = pinocchio_model_basic.cast<exp_type>();
+    pinocchio_model_gravity = pinocchio_model_basic.cast<exp_type_gravity>();
+    pinocchio_model_fd      = pinocchio_model_basic.cast<exp_type_fd>();
+    //std::cout << "model name: " << pinocchio_model.name << std::endl;
 
-    pinocchio_data = pinocchio::DataTpl<exp_type>(pinocchio_model);
+    pinocchio_data          = pinocchio::DataTpl<exp_type>(pinocchio_model);
+    pinocchio_data_gravity  = pinocchio::DataTpl<exp_type_gravity>(pinocchio_model_gravity);
+    pinocchio_data_fd       = pinocchio::DataTpl<exp_type_fd>(pinocchio_model_fd);
 
     // check command-line arguments
     if (argc!=2) {

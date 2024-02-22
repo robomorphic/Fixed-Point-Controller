@@ -41,9 +41,12 @@ struct Eigen::ScalarBinaryOpTraits<exp_type,double,BinaryOp> { typedef exp_type 
 // Load the urdf model
 pinocchio::ModelTpl<double> pinocchio_model_basic;
 pinocchio::ModelTpl<exp_type> pinocchio_model;
+pinocchio::ModelTpl<exp_type_gravity> pinocchio_model_gravity;
+pinocchio::ModelTpl<exp_type_fd> pinocchio_model_fd;
 // Create data required by the algorithms
 pinocchio::DataTpl<exp_type> pinocchio_data;
-pinocchio::DataTpl<double> pinocchio_double_data;
+pinocchio::DataTpl<exp_type_gravity> pinocchio_data_gravity;
+pinocchio::DataTpl<exp_type_fd> pinocchio_data_fd;
 
 
 // MuJoCo data structures

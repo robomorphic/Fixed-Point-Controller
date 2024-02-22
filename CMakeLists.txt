@@ -1,17 +1,3 @@
-# Copyright 2021 DeepMind Technologies Limited
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 cmake_minimum_required(VERSION 3.16)
 
 # INTERPROCEDURAL_OPTIMIZATION is enforced when enabled.
@@ -25,10 +11,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -ferror-limit=10000")
 set(MSVC_INCREMENTAL_DEFAULT ON)
 
 project(
-  mujoco_samples
-  VERSION 3.1.2
-  DESCRIPTION "MuJoCo samples binaries"
-  HOMEPAGE_URL "https://mujoco.org"
+  fixed_point_controller
+  VERSION 0.1.0
+  DESCRIPTION "QP controller with fixed point floating point numbers"
+  HOMEPAGE_URL ""
 )
 
 enable_language(C)
@@ -72,28 +58,27 @@ if(MUJOCO_HARDEN)
   endif()
 endif()
 
+# set to -O0 for debug build
 SET(CMAKE_CXX_FLAGS_DEBUG "-O0")
 SET(CMAKE_C_FLAGS_DEBUG "-O0")
 
 
-# Build sample binaries
-
 # This mujoco is built by me and installed in /Users/alp/mujoco/install
-set(MUJOCO_FOLDER /Users/alp/mujoco/install/lib/cmake)
-find_package(mujoco REQUIRED PATHS ${MUJOCO_FOLDER})
+if(APPLE)
+  set(MUJOCO_FOLDER /Users/alp/mujoco/install/lib/cmake)
+  find_package(mujoco REQUIRED PATHS ${MUJOCO_FOLDER})
+endif()
 find_package(pinocchio REQUIRED) # cmake installs this in _deps
 find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation
 
 
 find_package(boost)
-
-
 find_package(osqp)
 
-add_executable(trajectory_tracking_only_pos src/trajectory_tracking_only_pos.cc)
-target_compile_options(trajectory_tracking_only_pos PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+add_executable(trajectory_tracking src/trajectory_tracking.cc)
+target_compile_options(trajectory_tracking PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
 target_link_libraries(
-  trajectory_tracking_only_pos
+  trajectory_tracking
   mujoco::mujoco
   glfw
   Threads::Threads
@@ -101,38 +86,7 @@ target_link_libraries(
   osqp::osqp
   ${Boost_LIBRARIES}
 )
-target_include_directories(trajectory_tracking_only_pos PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
-
-
-#add_executable(first_controllers src/first_controllers.cc)
-#target_compile_options(first_controllers PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-#target_link_libraries(
-#  first_controllers
-#  mujoco::mujoco
-#  glfw
-#  Threads::Threads
-#  pinocchio
-#  osqp::osqp
-#  ${Boost_LIBRARIES}
-#)
-#target_include_directories(first_controllers PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
-
-#add_executable(osqp_type_form src/osqp_type_form.cc)
-#target_compile_options(osqp_type_form PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
-#target_link_libraries(
-#  osqp_type_form
-#  mujoco::mujoco
-#  glfw
-#  Threads::Threads
-#  pinocchio
-#  osqp::osqp
-#  ${Boost_LIBRARIES}
-#)
-#target_include_directories(osqp_type_form PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
-
-
-
-
+target_include_directories(trajectory_tracking PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
 
 if(APPLE AND MUJOCO_BUILD_MACOS_FRAMEWORKS)
@@ -149,32 +103,6 @@ endif()
 if(_INSTALL_SAMPLES)
 
   include(TargetAddRpath)
-
-  # Add support to RPATH for the samples.
-  target_add_rpath(
-    TARGETS
-    basic
-    compile
-    record
-    INSTALL_DIRECTORY
-    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}"
-    LIB_DIRS
-    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
-    DEPENDS
-    MUJOCO_ENABLE_RPATH
-  )
-
-  install(
-    TARGETS basic
-            compile
-            record
-    EXPORT ${PROJECT_NAME}
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT samples
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT samples
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT samples
-    BUNDLE DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT samples
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT samples
-  )
 
   if(NOT MUJOCO_SAMPLES_USE_SYSTEM_GLFW)
     # We downloaded GLFW. Depending if it is a static or shared LIBRARY we might

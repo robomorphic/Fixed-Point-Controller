@@ -84,7 +84,7 @@ findorfetch(
   LIBRARY_NAME
   pinocchio
   GIT_REPO
-  https://github.com/stack-of-tasks/pinocchio
+  https://github.com/alpylmz/pinocchio
   GIT_TAG
   v2.7.0
   TARGETS

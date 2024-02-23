@@ -68,7 +68,7 @@ if(APPLE)
   set(MUJOCO_FOLDER /Users/alp/mujoco/install/lib/cmake)
   find_package(mujoco REQUIRED PATHS ${MUJOCO_FOLDER})
 else()
-  set(MUJOCO_FOLDER /mujoco-3.1.2/lib)
+  set(MUJOCO_FOLDER /mujoco-3.1.2/include)
   find_package(mujoco REQUIRED PATHS ${MUJOCO_FOLDER})
 endif()
 find_package(pinocchio REQUIRED) # cmake installs this in _deps

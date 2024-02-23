@@ -71,7 +71,7 @@ else()
   set(MUJOCO_FOLDER /mujoco-3.1.2/sample/cmake)
   find_package(mujoco REQUIRED PATH ${MUJOCO_FOLDER})
 endif()
-find_package(pinocchio REQUIRED PATHS /usr/local/lib/cmake/pinocchio)
+find_package(pinocchio REQUIRED PATHS /usr/local/lib/cmake)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation
 
 

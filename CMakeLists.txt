@@ -67,6 +67,9 @@ SET(CMAKE_C_FLAGS_DEBUG "-O0")
 if(APPLE)
   set(MUJOCO_FOLDER /Users/alp/mujoco/install/lib/cmake)
   find_package(mujoco REQUIRED PATHS ${MUJOCO_FOLDER})
+else()
+  set(MUJOCO_FOLDER /mujoco-3.1.2/lib)
+  find_package(mujoco REQUIRED PATHS ${MUJOCO_FOLDER})
 endif()
 find_package(pinocchio REQUIRED) # cmake installs this in _deps
 find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation

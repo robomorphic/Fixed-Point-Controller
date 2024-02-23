@@ -72,7 +72,7 @@ else()
   #find_package(mujoco REQUIRED PATH ${MUJOCO_FOLDER})
   find_package(mujoco REQUIRED)
   endif()
-find_package(pinocchio REQUIRED PATHS /usr/local/lib/cmake)
+find_package(pinocchio REQUIRED)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation
 
 

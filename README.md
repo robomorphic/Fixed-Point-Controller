@@ -30,8 +30,9 @@ template<typename T> EIGEN_DEVICE_FUNC bool (isfinite)(const T &x) { return inte
 
 to
 > template<typename T> EIGEN_DEVICE_FUNC bool (isfinite)(const T &x) { return true; }
+
 Otherwise, Eigen refuses to work with our fixed-point arithmetic class. This may be fixable.
 
 ### Pointers
-Start by reading src/trajectory_tracking.cc. It contains the crucial parts and the main function. The rest(MuJoCo helper functions, renders, trajectories, config files) can be found in include/config.hpp include/mujoco_exec_helper.hpp include/traj.hpp. 
+Start by reading src/trajectory_tracking.cc. It contains the crucial parts and the main function. The rest can be found in include/config.hpp include/mujoco_exec_helper.hpp include/traj.hpp. 
 It should be easy to read and well-commented, but I'll simplify and write about them here after I am done with installation part.

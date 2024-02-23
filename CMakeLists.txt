@@ -71,12 +71,8 @@ else()
   set(MUJOCO_FOLDER /mujoco-3.1.2/sample/cmake)
   find_package(mujoco REQUIRED PATH ${MUJOCO_FOLDER})
 endif()
-if(APPLE)
-  find_package(pinocchio REQUIRED) # cmake installs this in _deps
-else()
-  find_package(pinocchio REQUIRED PATHS /usr/local/lib/cmake/pinocchio)
-endif()
-  find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation
+find_package(pinocchio REQUIRED PATHS /usr/local/lib/cmake/pinocchio)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation
 
 
 find_package(Boost 1.74.0 REQUIRED)

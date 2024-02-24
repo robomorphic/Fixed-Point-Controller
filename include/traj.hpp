@@ -1,6 +1,7 @@
 #include <math.h>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 #include <mujoco/mujoco.h>
 

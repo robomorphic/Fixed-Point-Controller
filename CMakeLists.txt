@@ -76,7 +76,7 @@ find_package(pinocchio REQUIRED)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation
 
 
-find_package(Boost 1.74.0 REQUIRED)
+find_package(Boost 1.71.0 REQUIRED)
 find_package(osqp)
 
 add_executable(trajectory_tracking src/trajectory_tracking.cc)

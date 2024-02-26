@@ -10,11 +10,11 @@ const bool USE_RENDER = true;
 const int INT_BITS_STANDARD = 30;
 const int FRAC_BITS_STANDARD = 30;
 
-const int INT_BITS_GRAVITY = 31;
-const int FRAC_BITS_GRAVITY = 31;
+const int INT_BITS_GRAVITY = 7;
+const int FRAC_BITS_GRAVITY = 7;
 
-const int INT_BITS_FD = 31;
-const int FRAC_BITS_FD = 31;
+const int INT_BITS_FD = 9;
+const int FRAC_BITS_FD = 9;
 
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
 typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
@@ -31,5 +31,21 @@ std::ofstream DATA_FILE;
 double TORQUE_HARD_LIMIT = 50;
 
 double TIME_STEP = 0.01;
+
+struct {
+    // this is used to signal that a new trajectory has been loaded, true when a new trajectory is loaded, false otherwise
+    bool new_traj = true; 
+    // in some experiments the trajectory following may start at a different position, 
+    // therefore we first need to make sure that the robot is at the correct position before starting the trajectory, 
+    // this variable makes sure that the time goals for the trajectory aligns
+    double traj_start_time;
+    // traj index must start from 1, otherwise calculate_goal will give incorrect results. 
+    int traj_index = 1;
+    bool went_to_init = false;
+    
+    // This is tolerance for the joint space
+    const double GOAL_TOLERANCE = 0.1;
+    const double EXP_HARD_STOP_TIME = 40.0;
+} TrajectoryVars;
 
 #endif

@@ -7,22 +7,6 @@
 
 #include <config.hpp>
 
-struct {
-    // this is used to signal that a new trajectory has been loaded, true when a new trajectory is loaded, false otherwise
-    bool new_traj = true; 
-    // in some experiments the trajectory following may start at a different position, 
-    // therefore we first need to make sure that the robot is at the correct position before starting the trajectory, 
-    // this variable makes sure that the time goals for the trajectory aligns
-    double traj_start_time;
-    // traj index must start from 1, otherwise calculate_goal will give incorrect results. 
-    int traj_index = 1;
-    bool went_to_init = false;
-    
-    // This is tolerance for the joint space
-    const double GOAL_TOLERANCE = 0.1;
-    const double EXP_HARD_STOP_TIME = 40.0;
-} TrajectoryVars;
-
 
 double position_array[][6] = {
 {-2.2681189875972954, -1.7248420637073125, 0.2983396339315189, -1.9868980548040653, 1.0451446818771761, 0.39756637259648786},

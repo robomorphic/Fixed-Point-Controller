@@ -19,7 +19,7 @@ Optional:
 - [Matplotlib](https://matplotlib.org/)
 
 ### Installation
-You can use the Dockerfile to install and its dependencies. You may also need to setup X11 forwarding in the host system. In the future I'll try to remove this dependency for headless operation.
+You can use the Dockerfile to install the simulation and its dependencies. You may also need to setup X11 forwarding in the host system. In the future I'll try to remove this dependency for headless operation.
 
 
 #### Extra notes

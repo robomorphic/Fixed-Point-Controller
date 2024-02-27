@@ -277,9 +277,12 @@ int main(int argc, const char** argv) {
     // But otherwise the program crashes in different places
     // This may be problematic in a docker environment
     // create window, make OpenGL context current, request v-sync
-    GLFWwindow* window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    GLFWwindow* window;
+    if(USE_RENDER){
+        window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+    }
     // initialize visualization data structures
     mjv_defaultCamera(&cam);
     mjv_defaultOption(&opt);
@@ -287,7 +290,9 @@ int main(int argc, const char** argv) {
     // mjr_defaultContext(&con);
     // create scene and context
     mjv_makeScene(m, &scn, 2000);
-    mjr_makeContext(m, &con, mjFONTSCALE_150);
+    if(USE_RENDER){
+        mjr_makeContext(m, &con, mjFONTSCALE_150);
+    }
 
     // install GLFW mouse and keyboard callbacks
     if(USE_RENDER){

@@ -1,7 +1,8 @@
 # this file writes config.hpp as needed, compiles the project and runs the simulation
 import os
+import argparse
 
-EXPERIMENT_DIRECTORY = "exp/02-20/"
+EXPERIMENT_DIRECTORY = "exp/02-25/"
 
 config_file = """
 #ifndef CONFIG_HPP
@@ -11,33 +12,33 @@ config_file = """
 
 const std::string urdf_filename = std::string("models/panda.urdf");
 
-const bool USE_RENDER = true;
+const bool USE_RENDER = false;
+std::string EXPERIMENT_DIRECTORY = "{experiment_directory}";
 const int INT_BITS_STANDARD = {int_bits};
 const int FRAC_BITS_STANDARD = {frac_bits};
 
-const int INT_BITS_GRAVITY = {int_bits};
-const int FRAC_BITS_GRAVITY = {frac_bits};
+const int INT_BITS_GRAVITY = {int_bits_gravity};
+const int FRAC_BITS_GRAVITY = {frac_bits_gravity};
 
-const int INT_BITS_FD = {int_bits};
-const int FRAC_BITS_FD = {frac_bits};
+const int INT_BITS_FD = {int_bits_fd};
+const int FRAC_BITS_FD = {frac_bits_fd};
 
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
-typedef FixedPoint<INT_BITS, FRAC_BITS> exp_type;
+typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
 typedef FixedPoint<INT_BITS_GRAVITY, FRAC_BITS_GRAVITY> exp_type_gravity;
 typedef FixedPoint<INT_BITS_FD, FRAC_BITS_FD> exp_type_fd;
 // typedef double exp_type;
 
 // PD controller uses this position as its target
-exp_type fixed_pos[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};
+exp_type fixed_pos[] = {{-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442}};
 
-std::string EXPERIMENT_DIRECTORY = "exp/02-20/";
 std::ofstream DATA_FILE;
 
 double TORQUE_HARD_LIMIT = 50;
 
 double TIME_STEP = 0.01;
 
-struct {
+struct {{
     // this is used to signal that a new trajectory has been loaded, true when a new trajectory is loaded, false otherwise
     bool new_traj = true; 
     // in some experiments the trajectory following may start at a different position, 
@@ -51,27 +52,54 @@ struct {
     // This is tolerance for the joint space
     const double GOAL_TOLERANCE = 0.1;
     const double EXP_HARD_STOP_TIME = 40.0;
-} TrajectoryVars;
+}} TrajectoryVars;
 
 #endif
 """
 
+# get min arg max arg for int gravity and int fd from arguments
+parser = argparse.ArgumentParser(
+    description='Run experiments with different fixed point configurations'
+)
+parser.add_argument('--min-gravity-int', type=int, required=True)
+parser.add_argument('--max-gravity-int', type=int, required=True)
+parser.add_argument('--min-gravity-frac', type=int, required=True)
+parser.add_argument('--max-gravity-frac', type=int, required=True)
+parser.add_argument('--min-fd-int', type=int, required=True)
+parser.add_argument('--max-fd-int', type=int, required=True)
+parser.add_argument('--min-fd-frac', type=int, required=True)
+parser.add_argument('--max-fd-frac', type=int, required=True)
 
-# Need to update these!
-int_bits_list = range(6, 16)
-frac_bits_list = range(3, 16)
+args = parser.parse_args()
 
-for int_bits in int_bits_list:
-    for frac_bits in frac_bits_list:
-        # if EXPERIMENT_DIRECTORY+str(int_bits)+'_'+str(frac_bits)+'/data.csv' exists, skip
-        if os.path.exists(EXPERIMENT_DIRECTORY+str(int_bits)+'_'+str(frac_bits)+'/data.csv'):
-            print(f'Experiment with int_bits: {int_bits}, frac_bits: {frac_bits} exists. Skipping...')
-            continue
-        with open('include/config.hpp', 'w') as f:
-            f.write(config_file.format(int_bits=int_bits, frac_bits=frac_bits))
+min_gravity_int = args.min_gravity_int
+max_gravity_int = args.max_gravity_int
+min_gravity_frac = args.min_gravity_frac
+max_gravity_frac = args.max_gravity_frac
+min_fd_int = args.min_fd_int
+max_fd_int = args.max_fd_int
+min_fd_frac = args.min_fd_frac
+max_fd_frac = args.max_fd_frac
 
-        print(f'Compiling with int_bits: {int_bits}, frac_bits: {frac_bits}')
-        # compile the project
-        os.system('make > /dev/null')
-        os.system('./bin/trajectory_tracking ../mujoco_menagerie/franka_emika_panda/scene.xml > /dev/null')
+gravity_int_bits_list = list(range(min_gravity_int, max_gravity_int+1))
+gravity_frac_bits_list = list(range(min_gravity_frac, max_gravity_frac+1))
+fd_int_bits_list = list(range(min_fd_int, max_fd_int+1))
+fd_frac_bits_list = list(range(min_fd_frac, max_fd_frac+1))
+
+for gravity_int_bit in gravity_int_bits_list:
+    for gravity_frac_bit in gravity_frac_bits_list:
+        for fd_int_bit in fd_int_bits_list:
+            for fd_frac_bit in fd_frac_bits_list:
+                if os.path.exists(EXPERIMENT_DIRECTORY+str(gravity_int_bit)+'_'+str(gravity_frac_bit)+'_'+str(fd_int_bit)+'_'+str(fd_frac_bit)+'/data.csv'):
+                    print(f'Experiment with gravity_int_bit: {gravity_int_bit}, gravity_frac_bit: {gravity_frac_bit}, fd_int_bit: {fd_int_bit}, fd_frac_bit: {fd_frac_bit} exists. Skipping...')
+                    continue
+                with open('include/config.hpp', 'w') as f:
+                    f.write(config_file.format(int_bits=16, frac_bits=16, int_bits_gravity=gravity_int_bit, frac_bits_gravity=gravity_frac_bit, int_bits_fd=fd_int_bit, frac_bits_fd=fd_frac_bit, experiment_directory=EXPERIMENT_DIRECTORY))
+                print(f'Compiling with gravity_int_bit: {gravity_int_bit}, gravity_frac_bit: {gravity_frac_bit}, fd_int_bit: {fd_int_bit}, fd_frac_bit: {fd_frac_bit}')
+                # compile the project
+                os.system('make > /dev/null')
+                os.system('./bin/trajectory_tracking ../mujoco_menagerie/franka_emika_panda/scene.xml > /dev/null')
+
+
+
 

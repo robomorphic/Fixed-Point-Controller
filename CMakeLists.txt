@@ -78,6 +78,7 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation
 
 find_package(Boost 1.71.0 REQUIRED)
 find_package(osqp)
+find_package(OsqpEigen REQUIRED)
 
 add_executable(trajectory_tracking src/trajectory_tracking.cc)
 target_compile_options(trajectory_tracking PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
@@ -88,6 +89,7 @@ target_link_libraries(
   Threads::Threads
   pinocchio
   osqp::osqp
+  OsqpEigen::OsqpEigen
   ${Boost_LIBRARIES}
 )
 target_include_directories(trajectory_tracking PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})

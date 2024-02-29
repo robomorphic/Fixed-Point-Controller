@@ -271,14 +271,10 @@ int main(int argc, const char** argv) {
     d = mj_makeData(m);
 
     // init GLFW
-    if (!glfwInit()) {
+    if (USE_RENDER && !glfwInit()) {
         mju_error("Could not initialize GLFW");
     }
 
-    // I don't like having these executed even in non-rendering mode
-    // But otherwise the program crashes in different places
-    // This may be problematic in a docker environment
-    // create window, make OpenGL context current, request v-sync
     GLFWwindow* window;
     if(USE_RENDER){
         window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);

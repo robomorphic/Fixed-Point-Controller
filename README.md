@@ -21,10 +21,6 @@ Optional:
 ### Installation
 You can use the Dockerfile to install the simulation and its dependencies. You may also need to setup X11 forwarding in the host system. In the future I'll try to remove this dependency for headless operation.
 
-### Note
-Current version is broken. Use the commit 6a664a2 to run the code. I'll add OSQP C++ support soon.
-
-
 #### Extra notes
 You need to change the line 
 > /opt/homebrew/include/eigen3/Eigen/Core/MathFunctions.h line 1372

@@ -5,7 +5,7 @@ import glob
 
 import traj
 
-PARENT_DIRECTORY = 'exp/02-20'
+PARENT_DIRECTORY = 'exp/02-25'
 
 
 def calculate_goal(time):
@@ -55,7 +55,8 @@ def calculate_score_from_folder(int_bits, frac_bits):
     folder = f'{PARENT_DIRECTORY}/{int_bits}_{frac_bits}'
     try:
         data = pd.read_csv(f'{folder}/data.csv')
-    except:
+    except Exception as e:
+        print(e)
         return float('inf') # there may be an error because the df is empty
     # is data empty
     if data.empty:
@@ -65,6 +66,23 @@ def calculate_score_from_folder(int_bits, frac_bits):
     data['score'] = data.apply(calculate_score, axis=1)
     return data['score'].sum()/len(data)
 
+def calculate_score_from_folder(gravity_int_bits, gravity_frac_bits, fd_int_bits, fd_frac_bits):
+    folder = f'{PARENT_DIRECTORY}/{gravity_int_bits}_{gravity_frac_bits}_{fd_int_bits}_{fd_frac_bits}'
+    print("reading from ", folder)
+    try:
+        data = pd.read_csv(f'{folder}/data.csv')
+    except Exception as e:
+        print(e)
+        return float('inf') # there may be an error because the df is empty
+    # is data empty
+    if data.empty:
+        return float('inf')
+
+    print('data read')
+
+    # calculate the score and print the sum
+    data['score'] = data.apply(calculate_score, axis=1)
+    return data['score'].sum()/len(data)
 
 
 if __name__ == "__main__":

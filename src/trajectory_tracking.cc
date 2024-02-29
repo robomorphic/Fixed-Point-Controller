@@ -1,5 +1,4 @@
 #include <osqp/osqp.h>
-#include <OsqpEigen/OsqpEigen.h>
 
 #include <mujoco_exec_helper.hpp>
 #include <traj.hpp>
@@ -236,112 +235,6 @@ void my_controller_QP(const mjModel* m, mjData* d){
 }
 
 
-void controller_QPplus(const mjModel* m, mjData* d){
-    // bad, but necessary for now
-    Eigen::Matrix<double, 6, 1> qpos;
-    Eigen::Matrix<double, 6, 1> qerr;
-    Eigen::Matrix<double, 6, 1> qvel;
-    Eigen::Matrix<double, 6, 1> qacc;
-    Eigen::Matrix<exp_type_gravity, 6, 1> qpos_gravity;
-    Eigen::Matrix<exp_type_gravity, 6, 1> qerr_gravity;
-    Eigen::Matrix<exp_type_gravity, 6, 1> qvel_gravity;
-    Eigen::Matrix<exp_type_gravity, 6, 1> qacc_gravity;
-    Eigen::Matrix<exp_type_fd, 6, 1> qpos_fd;
-    Eigen::Matrix<exp_type_fd, 6, 1> qerr_fd;
-    Eigen::Matrix<exp_type_fd, 6, 1> qvel_fd;
-    Eigen::Matrix<exp_type_fd, 6, 1> qacc_fd;
-    double traj_time = d->time - TrajectoryVars.traj_start_time;
-
-        // We stop the simulation after a certain time for our experiments
-    stop_sim_if_needed(traj_time);
-
-    for(int i = 0; i < pinocchio_model.nv; i++){
-        qpos[i] = qpos_gravity[i] = qpos_fd[i] = d->qpos[i];
-        qvel[i] = qvel_gravity[i] = qvel_fd[i] = d->qvel[i];
-        qacc[i] = qacc_gravity[i] = qacc_fd[i] = d->qacc[i];
-    }
-    save_position(qpos, qvel, qacc, traj_time);
-
-    double curr_goal[6] = {0};
-    calculate_goal(qpos, qvel, curr_goal, traj_time, d->time);
-    for(int i = 0; i < 6; i++){
-        qerr[i] = qpos[i] - curr_goal[i];
-    }
-
-    // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
-    auto dynamic_drift = pinocchio::rnea(pinocchio_model_gravity, pinocchio_data_gravity, qpos_gravity, qvel_gravity, qacc_gravity);
-    // this calculates Minv, the inverse of the inertia matrix
-    pinocchio::computeABADerivatives(pinocchio_model_fd, pinocchio_data_fd, qpos_fd, qvel_fd, qacc_fd);
-
-    // apply the dynamic drift to the control input
-    for(int i = 0; i < pinocchio_model.nv; i++){
-        d->ctrl[i] = dynamic_drift[i];
-    }
-    
-    auto Minv_temp = -TIME_STEP * pinocchio_data_fd.Minv;
-    Eigen::Matrix<exp_type_fd, 6, 6> Minv = Minv_temp; // do I need this?
-
-    OsqpEigen::Solver solver;
-    solver.settings()->setWarmStart(true);
-
-    int NUM_VAR = 18;
-    int NUM_CONSTR = 18;
-
-    solver.data()->setNumberOfVariables(NUM_VAR);
-    solver.data()->setNumberOfConstraints(NUM_CONSTR);
-
-    Eigen::SparseMatrix<double> P(18, 18);
-    P.setIdentity();
-    // set the last 6 rows to 0
-    for(int i = 12; i < 18; i++){
-        for(int j = 0; j < 18; j++){
-            P.coeffRef(i, j) = 0;
-            P.coeffRef(j, i) = 0;
-        }
-    }
-    solver.data()->setHessianMatrix(P);
-
-    // set the linear part to 0
-    Eigen::VectorXd q(18);
-    q.setZero();
-    solver.data()->setGradient(q);
-
-    Eigen::SparseMatrix<double> A(18, 18);
-    A.setIdentity();
-    // set the 1x1 block to identity
-    A.coeffRef(0, 6) = A.coeffRef(1, 7) = A.coeffRef(2, 8) = A.coeffRef(3, 9) = A.coeffRef(4, 10) = A.coeffRef(5, 11) = -1;
-    // the 2x1 block should be set to Minv
-    for(int i = 0; i < 6; i++){
-        for(int j = 12; j < 18; j++){
-            A.coeffRef(i+6, j) = Minv(i, j);
-        }
-    }
-    solver.data()->setLinearConstraintsMatrix(A);
-    
-    Eigen::VectorXd l(18), u(18);
-    for(int i = 0; i < 6; i++){
-        l(i) = u(i) = qerr[i];
-        l(i+6) = -TORQUE_HARD_LIMIT;
-        u(i+6) = TORQUE_HARD_LIMIT;
-    }
-    solver.data()->setLowerBound(l);
-    solver.data()->setUpperBound(u);
-
-    if(!solver.initSolver()){
-        std::cout << "QP problem not initialized!" << std::endl;
-    }
-
-    if(solver.solveProblem() == OsqpEigen::ErrorExitFlag::NoError){
-        Eigen::VectorXd ctrl = solver.getSolution();
-        for(int i = 0; i < 6; i++){
-            d->ctrl[i] += ctrl(i+12);
-        }
-    }
-    else{
-        std::cout << "QP problem not solved!" << std::endl;
-    }
-}
-
 // main function
 int main(int argc, const char** argv) {
     // pinocchio takes panda urdf file and creates a model
@@ -413,7 +306,7 @@ int main(int argc, const char** argv) {
     initialize_output_file();
 
     qp_preparation(m, d);
-    mjcb_control = controller_QPplus;
+    mjcb_control = my_controller_QP;
 
     // The main controller is not exactly 1/T Hz, I believe I can make it 1/T Hz with a global variable
     if(USE_RENDER){

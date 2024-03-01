@@ -12,6 +12,7 @@ config_file = """
 
 const std::string urdf_filename = std::string("models/panda.urdf");
 
+const bool PINOCCHIO_VERBOSE = true;
 const bool USE_RENDER = false;
 std::string EXPERIMENT_DIRECTORY = "{experiment_directory}";
 const int INT_BITS_STANDARD = {int_bits};

@@ -15,3 +15,4 @@ MUJOCO_LOG.TXT
 mujoco_samples.pc
 bin/**
 Makefile
+model_output/**

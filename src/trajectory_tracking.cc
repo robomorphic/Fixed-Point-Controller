@@ -2,6 +2,7 @@
 
 #include <mujoco_exec_helper.hpp>
 #include <traj.hpp>
+#include <util.hpp>
 
 // It is bad to have a global variable for this, but at the same time there is no way to pass this to the controller function.
 OSQPWorkspace *work;
@@ -244,6 +245,7 @@ int main(int argc, const char** argv) {
     pinocchio_model         = pinocchio_model_basic.cast<exp_type>();
     pinocchio_model_gravity = pinocchio_model_basic.cast<exp_type_gravity>();
     pinocchio_model_fd      = pinocchio_model_basic.cast<exp_type_fd>();
+    if(PINOCCHIO_VERBOSE) print_model(pinocchio_model, pinocchio_model_fd);
     //std::cout << "model name: " << pinocchio_model.name << std::endl;
 
     pinocchio_data          = pinocchio::DataTpl<exp_type>(pinocchio_model);

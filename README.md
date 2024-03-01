@@ -1,7 +1,7 @@
 ## Robot controller with Fixed-Point Arithmetic
 
 ### Introduction
-This project is built for analyzing how fixed-point arithmetic can be used to control a robot. The control problem is modelled as a quadratic problem, and it is solved using [OSQP](https://osqp.org/). The problem formulation can be seen in [Notes](Notes.pdf) file.
+This project is built to analyze how fixed-point arithmetic can be used to control a robot. The control problem is modelled as a quadratic problem, and it is solved using [OSQP](https://osqp.org/). The problem formulation can be seen in [Notes](Notes.pdf) file.
 
 ### Dependencies
 Essential:

@@ -72,15 +72,21 @@ else()
   #find_package(mujoco REQUIRED PATH ${MUJOCO_FOLDER})
   find_package(mujoco REQUIRED)
   endif()
-find_package(pinocchio REQUIRED)
+
+if(APPLE)
+  # https://github.com/stack-of-tasks/pinocchio/issues/1106
+  link_directories("/usr/local/lib")
+endif()
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(pinocchio REQUIRED pinocchio)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation
 
 
-find_package(Boost 1.71.0 REQUIRED)
+find_package(Boost 1.84.0 REQUIRED)
 find_package(osqp)
 
 add_executable(trajectory_tracking src/trajectory_tracking.cc)
-target_compile_options(trajectory_tracking PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS})
+target_compile_options(trajectory_tracking PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS} ${pinocchio_CFLAGS_OTHER})
 target_link_libraries(
   trajectory_tracking
   mujoco::mujoco
@@ -89,9 +95,19 @@ target_link_libraries(
   pinocchio
   osqp::osqp
   ${Boost_LIBRARIES}
+  Eigen3::Eigen
 )
 target_include_directories(trajectory_tracking PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
-
+# may be needed in future!
+#target_compile_options(trajectory_tracking PUBLIC $(pkg-config --cflags --libs pinocchio))
+# Execute pkg-config to get compiler flags and linker flags for pinocchio
+#execute_process(
+#    COMMAND pkg-config --cflags --libs pinocchio
+#    OUTPUT_VARIABLE PINOCCHIO_PKG_CONFIG
+#    OUTPUT_STRIP_TRAILING_WHITESPACE
+#)
+# Add the flags to your target
+#target_link_options(trajectory_tracking PUBLIC ${PINOCCHIO_PKG_CONFIG})
 
 if(APPLE AND MUJOCO_BUILD_MACOS_FRAMEWORKS)
   embed_in_bundle(basic simulate)

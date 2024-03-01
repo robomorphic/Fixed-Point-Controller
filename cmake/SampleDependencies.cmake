@@ -76,21 +76,24 @@ findorfetch(
   EXCLUDE_FROM_ALL
 )
 
-findorfetch(
-  USE_SYSTEM_PACKAGE
-  pinocchio
-  PACKAGE_NAME
-  pinocchio
-  LIBRARY_NAME
-  pinocchio
-  GIT_REPO
-  https://github.com/alpylmz/pinocchio
-  GIT_TAG
-  v2.7.0
-  TARGETS
-  pinocchio
-  EXCLUDE_FROM_ALL
-)
+
+#findorfetch(
+#  USE_SYSTEM_PACKAGE
+#  pinocchio
+#  PACKAGE_NAME
+#  pinocchio
+#  LIBRARY_NAME
+#  pinocchio
+#  GIT_REPO
+#  https://github.com/alpylmz/pinocchio
+#  GIT_TAG
+#  v2.7.0
+#  TARGETS
+#  pinocchio
+#  EXCLUDE_FROM_ALL
+#)
+#FetchContent_MakeAvailable(pinocchio)
+
 
 if(MUJOCO_EXTRAS_STATIC_GLFW)
   set(BUILD_SHARED_LIBS

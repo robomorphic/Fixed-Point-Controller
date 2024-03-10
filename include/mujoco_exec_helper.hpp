@@ -22,6 +22,7 @@
 #include "pinocchio/algorithm/jacobian.hpp"
 #include "pinocchio/algorithm/rnea-derivatives.hpp"
 #include "pinocchio/algorithm/aba-derivatives.hpp"
+#include "pinocchio_plus/aba.hpp"
 
 #include <FixedPoint/fixed_point.hpp>
 

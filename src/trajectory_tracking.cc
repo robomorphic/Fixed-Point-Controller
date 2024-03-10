@@ -160,10 +160,32 @@ void my_controller_QP(const mjModel* m, mjData* d){
         qerr[i] = qpos[i] - curr_goal[i];
     }
 
+    // Changing the stdout buffer for pinocchio debug prints
+    //freopen(model_output_foldername + "/ABA/" + std::to_string(CONTROLLER_ABA_PRINT_INDEX) + "/pinocchio_output.txt", "w", stdout);
+    // save the old buf
+    auto old_buf = std::cout.rdbuf();
+    // redirect std::cout to out.txt
+    std::string temp_str = model_output_foldername + "ABA/" + std::to_string(CONTROLLER_ABA_PRINT_INDEX) + "/";
+    std::filesystem::create_directories(temp_str);
+    std::ofstream file;
+    file.open(temp_str + "pinocchio_output.txt");
+    std::cout.rdbuf(file.rdbuf());
+
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
     auto dynamic_drift = pinocchio::rnea(pinocchio_model_gravity, pinocchio_data_gravity, qpos_gravity, qvel_gravity, qacc_gravity);
     // this calculates Minv, the inverse of the inertia matrix
-    pinocchio::computeABADerivatives(pinocchio_model_fd, pinocchio_data_fd, qpos_fd, qvel_fd, qacc_fd);
+    if(PINOCCHIO_VERBOSE){
+        std::cout << "calculating fixed point" << std::endl;
+        pinocchioVerbose::computeMinverseVerbose(pinocchio_model_fd, pinocchio_data_fd, qpos_fd);
+        std::cout << "calculating double" << std::endl;
+        pinocchioVerbose::computeMinverseVerbose(pinocchio_model, pinocchio_data, qpos);
+        print_ABA_output(pinocchio_data, pinocchio_data_fd);
+    }
+    else{
+        pinocchioVerbose::computeMinverseVerbose(pinocchio_model_fd, pinocchio_data_fd, qpos_fd);
+    }
+    
+    std::cout.rdbuf(old_buf);
 
     // apply the dynamic drift to the control input
     for(int i = 0; i < pinocchio_model.nv; i++){
@@ -254,7 +276,7 @@ int main(int argc, const char** argv) {
 
     // check command-line arguments
     if (argc!=2) {
-        std::printf(" USAGE:  basic modelfile\n");
+        std::printf(" USAGE: ./exec modelfile\n");
         return 0;
     }
     

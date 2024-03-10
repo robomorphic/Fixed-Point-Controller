@@ -10,10 +10,40 @@
 #include "pinocchio/algorithm/jacobian.hpp"
 #include "pinocchio/algorithm/rnea-derivatives.hpp"
 
-#define PRINT_VECTOR(x, of) of << "Vector: " << #x << std::endl; for(int i = 0; i < x.size(); i++) { of << std::setprecision(8) << x[i] << " "; } of << std::endl;
+#define PRINT_VECTOR(x, of) of << "Vector: " << #x << std::endl; for(int i = 0; i < x.size(); i++) { of << std::setprecision(4) << x[i] << " "; } of << std::endl;
 //#define PRINT_VECTOR(x) std::cout << "Vector: " << #x << std::endl; for(int i = 0; i < x.size(); i++) { std::cout << x[i] << " "; } std::cout << std::endl;
 //#define PRINT_VECTOR_VECTOR(x) std::cout << "Vector: " << #x << std::endl; for(int i = 0; i < x.size(); i++) { for(int j = 0; j < x[i].size(); j++) { std::cout << x[i][j] << " "; } std::cout << std::endl; }
-#define PRINT_VECTOR_VECTOR(x, of) of << "Vector: " << #x << std::endl; for(int i = 0; i < x.size(); i++) { for(int j = 0; j < x[i].size(); j++) { of << std::setprecision(8) << x[i][j] << " "; } of << std::endl; }
+#define PRINT_VECTOR_VECTOR(x, of) of << "Vector: " << #x << std::endl; for(int i = 0; i < x.size(); i++) { for(int j = 0; j < x[i].size(); j++) { of << std::setprecision(4) << x[i][j] << " "; } of << std::endl; }
+#define PRINT_MATRIX(x, of) of << "Matrix: " << #x << std::endl; for(int i = 0; i < x.rows(); i++) { for(int j = 0; j < x.cols(); j++) { of << std::setprecision(4) << x(i, j) << " "; } of << std::endl; }
+
+template<typename T>
+void ABA_output_helper(
+    pinocchio::DataTpl<T> data,
+    std::ofstream &file
+){
+    PRINT_MATRIX(data.Minv, file);
+}
+
+template<typename T, typename T2>
+void print_ABA_output(
+    pinocchio::DataTpl<T> original_data,
+    pinocchio::DataTpl<T2> fixed_point_data
+) {
+    std::ofstream original_data_file;
+    std::ofstream fixed_point_data_file;
+
+    auto dir = model_output_foldername + "/ABA/" + std::to_string(CONTROLLER_ABA_PRINT_INDEX) + "/";
+    std::filesystem::create_directories(dir);
+    original_data_file.open(dir + "original_data.txt");
+    fixed_point_data_file.open(dir + "/fixed_point_data.txt");
+
+    ABA_output_helper(original_data, original_data_file);
+    ABA_output_helper(fixed_point_data, fixed_point_data_file);
+    CONTROLLER_ABA_PRINT_INDEX++;
+
+}
+
+
 
 template<typename T>
 void print_model_helper(

@@ -163,21 +163,20 @@ void my_controller_QP(const mjModel* m, mjData* d){
     // Changing the stdout buffer for pinocchio debug prints
     //freopen(model_output_foldername + "/ABA/" + std::to_string(CONTROLLER_ABA_PRINT_INDEX) + "/pinocchio_output.txt", "w", stdout);
     // save the old buf
-    auto old_buf = std::cout.rdbuf();
+    // auto old_buf = std::cout.rdbuf();
     // redirect std::cout to out.txt
-    std::string temp_str = model_output_foldername + "ABA/" + std::to_string(CONTROLLER_ABA_PRINT_INDEX) + "/";
-    std::filesystem::create_directories(temp_str);
-    std::ofstream file;
-    file.open(temp_str + "pinocchio_output.txt");
-    std::cout.rdbuf(file.rdbuf());
+    //std::cout << "model_output_foldername: " << model_output_foldername << std::endl;
+    //std::string temp_str = model_output_foldername + "ABA/" + std::to_string(CONTROLLER_ABA_PRINT_INDEX) + "/";
+    //std::filesystem::create_directories(temp_str);
+    //std::ofstream file;
+    //file.open(temp_str + "pinocchio_output.txt");
+    //std::cout.rdbuf(file.rdbuf());
 
     // pinocchio will calculate dynamic drift -- coriolis, centrifugal, and gravity
     auto dynamic_drift = pinocchio::rnea(pinocchio_model_gravity, pinocchio_data_gravity, qpos_gravity, qvel_gravity, qacc_gravity);
     // this calculates Minv, the inverse of the inertia matrix
     if(PINOCCHIO_VERBOSE){
-        std::cout << "calculating fixed point" << std::endl;
         pinocchioVerbose::computeMinverseVerbose(pinocchio_model_fd, pinocchio_data_fd, qpos_fd);
-        std::cout << "calculating double" << std::endl;
         pinocchioVerbose::computeMinverseVerbose(pinocchio_model, pinocchio_data, qpos);
         print_ABA_output(pinocchio_data, pinocchio_data_fd);
     }
@@ -185,7 +184,7 @@ void my_controller_QP(const mjModel* m, mjData* d){
         pinocchioVerbose::computeMinverseVerbose(pinocchio_model_fd, pinocchio_data_fd, qpos_fd);
     }
     
-    std::cout.rdbuf(old_buf);
+    //std::cout.rdbuf(old_buf);
 
     // apply the dynamic drift to the control input
     for(int i = 0; i < pinocchio_model.nv; i++){

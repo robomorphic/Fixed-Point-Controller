@@ -10,11 +10,11 @@
 #include "pinocchio/algorithm/jacobian.hpp"
 #include "pinocchio/algorithm/rnea-derivatives.hpp"
 
-#define PRINT_VECTOR(x, of) of << "Vector: " << #x << std::endl; for(int i = 0; i < x.size(); i++) { of << std::setprecision(4) << x[i] << " "; } of << std::endl;
+#define PRINT_VECTOR(x, of) for(int i = 0; i < x.size(); i++) { of << std::setprecision(4) << x[i] << " "; } of << std::endl;
 //#define PRINT_VECTOR(x) std::cout << "Vector: " << #x << std::endl; for(int i = 0; i < x.size(); i++) { std::cout << x[i] << " "; } std::cout << std::endl;
 //#define PRINT_VECTOR_VECTOR(x) std::cout << "Vector: " << #x << std::endl; for(int i = 0; i < x.size(); i++) { for(int j = 0; j < x[i].size(); j++) { std::cout << x[i][j] << " "; } std::cout << std::endl; }
-#define PRINT_VECTOR_VECTOR(x, of) of << "Vector: " << #x << std::endl; for(int i = 0; i < x.size(); i++) { for(int j = 0; j < x[i].size(); j++) { of << std::setprecision(4) << x[i][j] << " "; } of << std::endl; }
-#define PRINT_MATRIX(x, of) of << "Matrix: " << #x << std::endl; for(int i = 0; i < x.rows(); i++) { for(int j = 0; j < x.cols(); j++) { of << std::setprecision(4) << x(i, j) << " "; } of << std::endl; }
+#define PRINT_VECTOR_VECTOR(x, of) for(int i = 0; i < x.size(); i++) { for(int j = 0; j < x[i].size(); j++) { of << std::setprecision(4) << x[i][j] << " "; } of << std::endl; }
+#define PRINT_MATRIX(x, of) for(int i = 0; i < x.rows(); i++) { for(int j = 0; j < x.cols(); j++) { of << std::setprecision(4) << x(i, j) << " "; } of << std::endl; }
 
 template<typename T>
 void ABA_output_helper(

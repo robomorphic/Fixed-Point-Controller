@@ -9,22 +9,24 @@ const std::string urdf_filename = std::string("models/panda.urdf");
 // do not change CONTROLLER_ABA_PRINT_INDEX, it is used to create a new directory for each iteration
 long long CONTROLLER_ABA_PRINT_INDEX = 0;
 long long temp_time = std::time(0);
-const std::string model_output_foldername = "model_output/" + std::to_string(temp_time) + "/";
+// get current path
+const std::string current_path = std::filesystem::current_path().string();
+const std::string model_output_foldername = current_path + "/model_output/" + std::to_string(temp_time) + "/";
 const bool PINOCCHIO_VERBOSE = true;
-const bool USE_RENDER = true;
+const bool USE_RENDER = false;
 std::string EXPERIMENT_DIRECTORY = "exp/02-25/";
-const int INT_BITS_STANDARD = 31;
-const int FRAC_BITS_STANDARD = 31;
+const int INT_BITS_STANDARD = 8;
+const int FRAC_BITS_STANDARD = 8;
 
 const int INT_BITS_GRAVITY = 31;
 const int FRAC_BITS_GRAVITY = 31;
 
-const int INT_BITS_FD = 12;
-const int FRAC_BITS_FD = 12;
+const int INT_BITS_FD = 7;
+const int FRAC_BITS_FD = 7;
 
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
-// typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
-typedef double exp_type;
+typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
+//typedef double exp_type;
 typedef FixedPoint<INT_BITS_GRAVITY, FRAC_BITS_GRAVITY> exp_type_gravity;
 typedef FixedPoint<INT_BITS_FD, FRAC_BITS_FD> exp_type_fd;
 

@@ -116,10 +116,13 @@ namespace pinocchioPass
       typedef typename Model::JointIndex JointIndex;
       const JointIndex & i = jmodel.id();
       pass1_file << "Joint: " << i << std::endl;
+      pass1_file << "model.inertia[i]_before_pass1: " << std::endl;
+      pass1_file << model.inertias[i].matrix() << std::endl;
       //this one is important
+      auto old_buf = std::cout.rdbuf();
+      std::cout.rdbuf(pass1_file.rdbuf());
       jmodel.calc(jdata.derived(),q.derived());
-      pass1_file << "temp_M: " << std::endl;
-      pass1_file << jdata.M() << std::endl;
+      std::cout.rdbuf(old_buf);
 
       // calculate the vector of relative joint placements (w.r.t. the body parent)
       const JointIndex & parent = model.parents[i];
@@ -142,7 +145,7 @@ namespace pinocchioPass
       // Inertia matrix of the "subtree" expressed as dense matrix
       // I currently don't know where the inertias are calculated, but I know it is pretty easy to calculate them
       data.Yaba[i] = model.inertias[i].matrix();
-      pass1_file << "Inertia_matrix: " << std::endl;
+      pass1_file << "Inertia_matrix_pass1_joint: " << std::endl;
       pass1_file << data.Yaba[i] << std::endl;
     }
 
@@ -185,6 +188,10 @@ namespace pinocchioPass
       typename Data::Matrix6x & Fcrb = data.Fcrb[0];
       typename Data::Matrix6x & FcrbTmp = data.Fcrb.back();
 
+      pass2_file << "Fcrb_before_pass2: " << std::endl;
+      pass2_file << Fcrb << std::endl;
+      pass2_file << "Yaba_before_pass2(Yaba is the inertia of the subtree): " << std::endl;
+      pass2_file << Ia << std::endl;
       // Inverse ABA
       auto old_buf = std::cout.rdbuf();
       std::cout.rdbuf(pass2_file.rdbuf());
@@ -223,15 +230,11 @@ namespace pinocchioPass
         Fcrb.middleCols(jmodel.idx_v(),data.nvSubtree[i]).noalias()
         = U_cols * Minv.block(jmodel.idx_v(),jmodel.idx_v(),jmodel.nv(),data.nvSubtree[i]);
       }
-      pass2_file << "Minv_temp: " << std::endl;
-      PRINT_MATRIX(Minv, pass2_file);
-      pass2_file << "Fcrb: " << std::endl;
+      pass2_file << "Fcrb_after_pass2(Fcrb is the spacial forces): " << std::endl;
       PRINT_MATRIX(Fcrb, pass2_file);
 
       if(parent > 0)
         data.Yaba[parent] += internalVerbose::SE3actOnVerbose<Scalar>::run(data.liMi[i], Ia);
-      pass2_file << "Yaba[parent]: " << std::endl;
-      PRINT_MATRIX(data.Yaba[parent], pass2_file);
     }
   };
 
@@ -270,11 +273,7 @@ namespace pinocchioPass
       typedef typename SizeDepType<JointModel::NV>::template ColsReturn<typename Data::Matrix6x>::Type ColsBlock;
       ColsBlock UDinv_cols = jmodel.jointCols(data.UDinv);
       forceSet::se3Action(data.oMi[i],jdata.UDinv(),UDinv_cols); // expressed in the world frame
-      pass3_file << "UDinv_cols: " << std::endl;
-      PRINT_MATRIX(UDinv_cols, pass3_file);
       ColsBlock J_cols = jmodel.jointCols(data.J);
-      pass3_file << "J_cols: " << std::endl;
-      PRINT_MATRIX(J_cols, pass3_file);
       if(parent > 0)
       {
         FcrbTmp.topRows(jmodel.nv()).rightCols(model.nv - jmodel.idx_v()).noalias()
@@ -282,13 +281,13 @@ namespace pinocchioPass
         Minv.middleRows(jmodel.idx_v(),jmodel.nv()).rightCols(model.nv - jmodel.idx_v())
         -= FcrbTmp.topRows(jmodel.nv()).rightCols(model.nv - jmodel.idx_v());
       }
-      pass3_file << "Minv: " << std::endl;
+      pass3_file << "Minv_final_pass3: " << std::endl;
       PRINT_MATRIX(Minv, pass3_file);
 
       data.Fcrb[i].rightCols(model.nv - jmodel.idx_v()).noalias() = J_cols * Minv.middleRows(jmodel.idx_v(),jmodel.nv()).rightCols(model.nv - jmodel.idx_v());
       if(parent > 0)
         data.Fcrb[i].rightCols(model.nv - jmodel.idx_v()) += data.Fcrb[parent].rightCols(model.nv - jmodel.idx_v());
-      pass3_file << "Fcrb[i]: " << std::endl;
+      pass3_file << "Fcrb[i]_final_pass3: " << std::endl;
       PRINT_MATRIX(data.Fcrb[i], pass3_file);
     }
   };
@@ -314,28 +313,6 @@ namespace pinocchioVerbose
       Pass1::run(model.joints[i],data.joints[i],
                  typename Pass1::ArgsType(model,data,q.derived()));
     }
-    /*
-    pass1_file << "Pass 1 is done" << std::endl;
-    pass1_file << "Relative joint placements: " << std::endl;
-    for(JointIndex i=1; i<(JointIndex)model.njoints; ++i)
-    {
-      pass1_file << "Joint " << i << ": " << std::endl;
-      pass1_file << data.liMi[i] << std::endl;
-    }
-    pass1_file << "Absolute joint placements: " << std::endl;
-    for(JointIndex i=1; i<(JointIndex)model.njoints; ++i)
-    {
-      pass1_file << "Joint " << i << ": " << std::endl;
-      pass1_file << data.oMi[i] << std::endl;
-    }
-    pass1_file << "Subtree inertias: " << std::endl;
-    for(JointIndex i=1; i<(JointIndex)model.njoints; ++i)
-    {
-      pass1_file << "Joint " << i << ": " << std::endl;
-      PRINT_MATRIX(data.Yaba[i], pass1_file);
-    }
-    */
-
     data.Fcrb[0].setZero();
     typedef pinocchioPass::ComputeMinverseBackwardStepVerbose<Scalar,Options,JointCollectionTpl> Pass2;
     for(JointIndex i=(JointIndex)model.njoints-1; i>0; --i)

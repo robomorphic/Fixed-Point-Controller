@@ -31,12 +31,12 @@
 #include <Eigen/Core>
 
 
-/*
+
 template<typename BinaryOp>
 struct Eigen::ScalarBinaryOpTraits<double,exp_type,BinaryOp> { typedef exp_type ReturnType;  };
 template<typename BinaryOp>
 struct Eigen::ScalarBinaryOpTraits<exp_type,double,BinaryOp> { typedef exp_type ReturnType;  };
-*/
+
 
 
 // Load the urdf model

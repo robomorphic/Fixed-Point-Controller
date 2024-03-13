@@ -16,3 +16,4 @@ mujoco_samples.pc
 bin/**
 Makefile
 model_output/**
+model_output2/**

@@ -9,7 +9,6 @@
 #include "pinocchio/multibody/visitor.hpp"
 #include "pinocchio/algorithm/check.hpp"
 #include "config.hpp"
-#include "nlohmann/json.hpp"
 
 #define PRINT_MATRIX(x, of) for(int i = 0; i < x.rows(); i++) { for(int j = 0; j < x.cols(); j++) { of << std::setprecision(4) << x(i, j) << " "; } of << std::endl; }
 
@@ -116,7 +115,11 @@ namespace pinocchioPass
       typedef typename Model::JointIndex JointIndex;
       const JointIndex & i = jmodel.id();
       pass1_file << "Joint: " << i << std::endl;
-      pass1_file << "model.inertia[i]_before_pass1: " << std::endl;
+      pass1_file << "model.lever[" << i << "]: " << std::endl;
+      pass1_file << model.inertias[i].lever() << std::endl;
+      pass1_file << "model.inertia[" << i << "]_before_pass1: " << std::endl;
+      pass1_file << model.inertias[i] << std::endl;
+      pass1_file << "model.inertia[" << i << "]_before_pass1_matrix: " << std::endl;
       pass1_file << model.inertias[i].matrix() << std::endl;
       //this one is important
       auto old_buf = std::cout.rdbuf();
@@ -145,8 +148,6 @@ namespace pinocchioPass
       // Inertia matrix of the "subtree" expressed as dense matrix
       // I currently don't know where the inertias are calculated, but I know it is pretty easy to calculate them
       data.Yaba[i] = model.inertias[i].matrix();
-      pass1_file << "Inertia_matrix_pass1_joint: " << std::endl;
-      pass1_file << data.Yaba[i] << std::endl;
     }
 
   };
@@ -190,8 +191,6 @@ namespace pinocchioPass
 
       pass2_file << "Fcrb_before_pass2: " << std::endl;
       pass2_file << Fcrb << std::endl;
-      pass2_file << "Yaba_before_pass2(Yaba is the inertia of the subtree): " << std::endl;
-      pass2_file << Ia << std::endl;
       // Inverse ABA
       auto old_buf = std::cout.rdbuf();
       std::cout.rdbuf(pass2_file.rdbuf());
@@ -200,26 +199,38 @@ namespace pinocchioPass
 
       typedef typename SizeDepType<JointModel::NV>::template ColsReturn<typename Data::Matrix6x>::Type ColsBlock;
 
+      // What is the purpose of this?
       ColsBlock U_cols = jmodel.jointCols(data.IS);
       forceSet::se3Action(data.oMi[i],jdata.U(),U_cols); // expressed in the world frame
 
-      // Minv is started from Dinv
-      // Dinv is the diagonal inverse of the joint space inertia matrix, obtained from calc_aba function
+      // Block of size (p,q), starting at (i,j) matrix.block(i,j,p,q);
       Minv.block(jmodel.idx_v(),jmodel.idx_v(),jmodel.nv(),jmodel.nv()) = jdata.Dinv();
+      pass2_file << "idx_v: \n" << jmodel.idx_v() << std::endl;
+      pass2_file << "nv: \n" << jmodel.nv() << std::endl;
+      pass2_file << "jdata.Dinv(): \n" << jdata.Dinv() << std::endl;
       const int nv_children = data.nvSubtree[i] - jmodel.nv();
+      pass2_file << "nvSubtree[i]: \n" << data.nvSubtree[i] << std::endl;
+      pass2_file << "nv_children: \n" << nv_children << std::endl;
+
       if(nv_children > 0)
       {
+        pass2_file << "J123: \n" << data.J << std::endl;
         ColsBlock J_cols = jmodel.jointCols(data.J);
+        pass2_file << "J_cols123: \n" << J_cols << std::endl;
         // I couldn't find information about where SDinv is populated. 
         // Search for data.SDinv gives only two results and they only use SDinv, not populate it.
+        // SDinv_cols = SDinv.middleCols(jmodel.idx_v(),jmodel.nv());
         ColsBlock SDinv_cols = jmodel.jointCols(data.SDinv);
         SDinv_cols.noalias() = J_cols * jdata.Dinv();
+        pass2_file << "SDinv_cols: \n" << SDinv_cols << std::endl;
         // the rest of the Minv is filled here
         Minv.block(jmodel.idx_v(),jmodel.idx_v()+jmodel.nv(),jmodel.nv(),nv_children).noalias()
         = -SDinv_cols.transpose() * Fcrb.middleCols(jmodel.idx_v()+jmodel.nv(),nv_children);
 
         if(parent > 0)
         {
+          // leftCols is the first n columns of the matrix
+          // middleCols is the q columns starting at the j-th column
           FcrbTmp.leftCols(data.nvSubtree[i]).noalias()
           = U_cols * Minv.block(jmodel.idx_v(),jmodel.idx_v(),jmodel.nv(),data.nvSubtree[i]);
           Fcrb.middleCols(jmodel.idx_v(),data.nvSubtree[i]) += FcrbTmp.leftCols(data.nvSubtree[i]);

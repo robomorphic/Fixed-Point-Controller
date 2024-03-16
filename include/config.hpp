@@ -13,16 +13,16 @@ long long temp_time = std::time(0);
 const std::string current_path = std::filesystem::current_path().string();
 const std::string model_output_foldername = current_path + "/model_output/" + std::to_string(temp_time) + "/";
 const bool PINOCCHIO_VERBOSE = true;
-const bool USE_RENDER = false;
+const bool USE_RENDER = true;
 std::string EXPERIMENT_DIRECTORY = "exp/02-25/";
-const int INT_BITS_STANDARD = 8;
-const int FRAC_BITS_STANDARD = 8;
+const int INT_BITS_STANDARD = 31;
+const int FRAC_BITS_STANDARD = 31;
 
 const int INT_BITS_GRAVITY = 31;
 const int FRAC_BITS_GRAVITY = 31;
 
-const int INT_BITS_FD = 7;
-const int FRAC_BITS_FD = 7;
+const int INT_BITS_FD = 8;
+const int FRAC_BITS_FD = 8;
 
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
 typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;

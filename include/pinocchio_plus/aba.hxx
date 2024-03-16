@@ -141,9 +141,20 @@ namespace pinocchioPass
       pass1_file << "Absolute_joint_placement: " << std::endl;
       pass1_file << data.oMi[i];
 
+      /*
+      // This seems to be unnecessary. Opened an issue for this.
       typedef typename SizeDepType<JointModel::NV>::template ColsReturn<typename Data::Matrix6x>::Type ColsBlock;
       ColsBlock J_cols = jmodel.jointCols(data.J);
+      pass1_file << "model.inertias[i].matrix()_before: \n" << model.inertias[i].matrix() << std::endl;
+      pass1_file << "J_cols_first_pass: \n" << J_cols << std::endl;
+      pass1_file << "data.oMi[i]: \n" << data.oMi[i] << std::endl;
+      //pass1_file << "jdata.S(): " << jdata.S() << std::endl;
       J_cols = data.oMi[i].act(jdata.S());
+      pass1_file << "J_cols_second_pass: \n" << J_cols << std::endl;
+      pass1_file << "data.oMi[i]_new_pass: \n" << data.oMi[i] << std::endl;
+      //pass1_file << "jdata.S()_new_pass: " << jdata.S() << std::endl;
+      pass1_file << "model.inertias[i].matrix()_after: \n" << model.inertias[i].matrix() << std::endl;
+      */
 
       // Inertia matrix of the "subtree" expressed as dense matrix
       // I currently don't know where the inertias are calculated, but I know it is pretty easy to calculate them
@@ -191,6 +202,10 @@ namespace pinocchioPass
 
       pass2_file << "Fcrb_before_pass2: " << std::endl;
       pass2_file << Fcrb << std::endl;
+      pass2_file << "Minv_before_pass2: " << std::endl;
+      pass2_file << Minv << std::endl;
+      pass2_file << "Ia_before_pass2: " << std::endl;
+      pass2_file << Ia << std::endl;
       // Inverse ABA
       auto old_buf = std::cout.rdbuf();
       std::cout.rdbuf(pass2_file.rdbuf());
@@ -200,6 +215,7 @@ namespace pinocchioPass
       typedef typename SizeDepType<JointModel::NV>::template ColsReturn<typename Data::Matrix6x>::Type ColsBlock;
 
       // What is the purpose of this?
+      // Unknown part 2
       ColsBlock U_cols = jmodel.jointCols(data.IS);
       forceSet::se3Action(data.oMi[i],jdata.U(),U_cols); // expressed in the world frame
 
@@ -226,6 +242,7 @@ namespace pinocchioPass
         // the rest of the Minv is filled here
         Minv.block(jmodel.idx_v(),jmodel.idx_v()+jmodel.nv(),jmodel.nv(),nv_children).noalias()
         = -SDinv_cols.transpose() * Fcrb.middleCols(jmodel.idx_v()+jmodel.nv(),nv_children);
+        pass2_file << "Minv_updated_little: \n" << Minv << std::endl;
 
         if(parent > 0)
         {
@@ -280,11 +297,34 @@ namespace pinocchioPass
       const JointIndex & parent = model.parents[i];
       typename Data::RowMatrixXs & Minv = data.Minv;
       typename Data::Matrix6x & FcrbTmp = data.Fcrb.back();
+      pass3_file << "pass3_jmodel.nv: " << std::endl;
+      pass3_file << jmodel.nv() << std::endl;
+      pass3_file << "pass3_jmodel.idx_v: " << std::endl;
+      pass3_file << jmodel.idx_v() << std::endl;
+      pass3_file << "pass3_model.nv: " << std::endl;
+      pass3_file << model.nv << std::endl;
+
+      pass3_file << "Minv_before_pass3: " << std::endl;
+      pass3_file << Minv << std::endl;
+      pass3_file << "UDinv_before_pass3: " << std::endl;
+      pass3_file << data.UDinv << std::endl;
 
       typedef typename SizeDepType<JointModel::NV>::template ColsReturn<typename Data::Matrix6x>::Type ColsBlock;
       ColsBlock UDinv_cols = jmodel.jointCols(data.UDinv);
+      pass3_file << "UDinv_cols_pass3_1: " << std::endl;
+      pass3_file << UDinv_cols << std::endl;
       forceSet::se3Action(data.oMi[i],jdata.UDinv(),UDinv_cols); // expressed in the world frame
+      pass3_file << "UDinv_cols_pass3_2: " << std::endl;
+      pass3_file << UDinv_cols << std::endl;
       ColsBlock J_cols = jmodel.jointCols(data.J);
+      pass3_file << "J_pass3: " << std::endl;
+      pass3_file << data.J << std::endl;
+      pass3_file << "J_cols_pass3: " << std::endl;
+      pass3_file << J_cols << std::endl;
+      pass3_file << "FcrbTmp_pass3_prev: " << std::endl;
+      pass3_file << FcrbTmp << std::endl;
+      pass3_file << "FcrbTmp_assigned_pass3: " << std::endl;
+      pass3_file << FcrbTmp.topRows(jmodel.nv()).rightCols(model.nv - jmodel.idx_v()) << std::endl;
       if(parent > 0)
       {
         FcrbTmp.topRows(jmodel.nv()).rightCols(model.nv - jmodel.idx_v()).noalias()
@@ -292,9 +332,14 @@ namespace pinocchioPass
         Minv.middleRows(jmodel.idx_v(),jmodel.nv()).rightCols(model.nv - jmodel.idx_v())
         -= FcrbTmp.topRows(jmodel.nv()).rightCols(model.nv - jmodel.idx_v());
       }
+      pass3_file << "FcrbTmpUpdate: " << std::endl;
+      pass3_file << UDinv_cols.transpose() * data.Fcrb[parent].rightCols(model.nv - jmodel.idx_v()) << std::endl;
+      pass3_file << "FcrbTmp_pass3: " << std::endl;
+      pass3_file << FcrbTmp << std::endl;
       pass3_file << "Minv_final_pass3: " << std::endl;
       PRINT_MATRIX(Minv, pass3_file);
 
+      pass3_file << "Fcrb[i]_before_pass3: " << std::endl;
       data.Fcrb[i].rightCols(model.nv - jmodel.idx_v()).noalias() = J_cols * Minv.middleRows(jmodel.idx_v(),jmodel.nv()).rightCols(model.nv - jmodel.idx_v());
       if(parent > 0)
         data.Fcrb[i].rightCols(model.nv - jmodel.idx_v()) += data.Fcrb[parent].rightCols(model.nv - jmodel.idx_v());
@@ -332,12 +377,12 @@ namespace pinocchioVerbose
                  typename Pass2::ArgsType(model,data));
     }
 
-    typedef pinocchioPass::ComputeMinverseForwardStep2Verbose<Scalar,Options,JointCollectionTpl> Pass3;
-    for(JointIndex i=1; i<(JointIndex)model.njoints; ++i)
-    {
-      Pass3::run(model.joints[i],data.joints[i],
-                 typename Pass3::ArgsType(model,data));
-    }
+    //typedef pinocchioPass::ComputeMinverseForwardStep2Verbose<Scalar,Options,JointCollectionTpl> Pass3;
+    //for(JointIndex i=1; i<(JointIndex)model.njoints; ++i)
+    //{
+    //  Pass3::run(model.joints[i],data.joints[i],
+    //             typename Pass3::ArgsType(model,data));
+    //}
 
     return data.Minv;
   }

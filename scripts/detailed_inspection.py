@@ -45,19 +45,19 @@ def read_pass_joint_info(folder, folder_index, lines, line_index, is_currently_o
     # we will read the file line by line, and store the values in a dictionary
     fixed_original_key = "big_resolution" if is_currently_original else "small_resolution"
     curr_var = ""
-    print("folder_index: " + str(folder_index))
+    #print("folder_index: " + str(folder_index))
     for i in range(line_index + 1, len(lines)):
-        print("i: " + str(i))
-        print(lines[i])
+        #print("i: " + str(i))
+        #print(lines[i])
         # if the line starts with "Joint: ", then we have finished reading the joint
         if "Joint: " in lines[i]: 
-            print("Joint finished" + str(folder_index))
+            #print("Joint finished" + str(folder_index))
             break
         # if the line ends with ": ", then it is the name of the variable
         elif lines[i][-2:] == ": ":
             curr_var = lines[i][:-2]
-            print("curr_var: ")
-            print(curr_var)
+            #print("curr_var: ")
+            #print(curr_var)
             # experiment_info[folder_index][joint_index][curr_var] = {} if not exists
             #print curr keys
             if not is_currently_original:
@@ -66,7 +66,7 @@ def read_pass_joint_info(folder, folder_index, lines, line_index, is_currently_o
         # otherwise, it is the value of the variable
         # keep appending the value to the dictionary
         else:
-            print("appending")
+            #print("appending")
             experiment_info[folder_index][joint_index][curr_var][fixed_original_key] += lines[i] + "\n"
 
 
@@ -98,9 +98,7 @@ def read_pass3_info(folder, folder_index):
         pass3 = pass3.split('\n')
         # split the pass1 into 12 parts, each starts with "Joint: {joint_index}"
         joint_start_lines = [i for i in range(len(pass3)) if "Joint: " in pass3[i]]
-        print(joint_start_lines)
         for i in range(int(len(joint_start_lines)/2)):
-            print("giving start_index: " + str(joint_start_lines[i]))
             read_pass_joint_info(folder, folder_index, pass3, joint_start_lines[i], False)
         for i in range(int(len(joint_start_lines)/2), len(joint_start_lines)):
             read_pass_joint_info(folder, folder_index, pass3, joint_start_lines[i], True)
@@ -127,9 +125,11 @@ def read_aba_info():
         read_pass1_info(folder, folder_index)
         # read the pass2.txt
         read_pass2_info(folder, folder_index)
-        # read the pass3.txt
-        read_pass3_info(folder, folder_index)
-
+        try:
+            # read the pass3.txt
+            read_pass3_info(folder, folder_index)
+        except:
+            pass
 
 read_bit_info()
 read_aba_info()

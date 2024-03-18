@@ -221,6 +221,7 @@ namespace pinocchioPass
 
       // Block of size (p,q), starting at (i,j) matrix.block(i,j,p,q);
       Minv.block(jmodel.idx_v(),jmodel.idx_v(),jmodel.nv(),jmodel.nv()) = jdata.Dinv();
+      pass2_file << "U_cols: \n" << U_cols << std::endl;
       pass2_file << "idx_v: \n" << jmodel.idx_v() << std::endl;
       pass2_file << "nv: \n" << jmodel.nv() << std::endl;
       pass2_file << "jdata.Dinv(): \n" << jdata.Dinv() << std::endl;

@@ -11,7 +11,7 @@ long long CONTROLLER_ABA_PRINT_INDEX = 0;
 long long temp_time = std::time(0);
 // get current path
 const std::string current_path = std::filesystem::current_path().string();
-const std::string model_output_foldername = current_path + "/model_output/" + std::to_string(temp_time) + "/";
+const std::string model_output_foldername = current_path + "/experiment_data/" + std::to_string(temp_time) + "/";
 const bool PINOCCHIO_VERBOSE = true;
 const bool USE_RENDER = true;
 std::string EXPERIMENT_DIRECTORY = "exp/02-25/";

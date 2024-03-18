@@ -2,7 +2,7 @@ import glob
 import os
 
 # read model_output folder, get all folder names choose the latest one
-folders = glob.glob('model_output/*')
+folders = glob.glob('experiment_data/*')
 latest_folder = max(folders, key=os.path.getctime)
 
 experiment_info = {}

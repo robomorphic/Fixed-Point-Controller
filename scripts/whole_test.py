@@ -2,7 +2,7 @@
 import os
 import argparse
 
-EXPERIMENT_DIRECTORY = "exp/02-25/"
+EXPERIMENT_DIRECTORY = "exp/03-19/"
 
 config_file = """
 #ifndef CONFIG_HPP
@@ -12,6 +12,12 @@ config_file = """
 
 const std::string urdf_filename = std::string("models/panda.urdf");
 
+// do not change CONTROLLER_ABA_PRINT_INDEX, it is used to create a new directory for each iteration
+long long CONTROLLER_ABA_PRINT_INDEX = 0;
+long long temp_time = std::time(0);
+// get current path
+const std::string current_path = std::filesystem::current_path().string();
+const std::string model_output_foldername = current_path + "/experiment_data/" + std::to_string(temp_time) + "/";
 const bool PINOCCHIO_VERBOSE = true;
 const bool USE_RENDER = false;
 std::string EXPERIMENT_DIRECTORY = "{experiment_directory}";
@@ -100,7 +106,8 @@ for gravity_int_bit in gravity_int_bits_list:
                 # compile the project
                 os.system('make > /dev/null')
                 os.system('./bin/trajectory_tracking ../mujoco_menagerie/franka_emika_panda/scene.xml > /dev/null')
-
+                os.system('python3 scripts/detailed_inspection.py')
+                os.system('python3 scripts/experiment_summary_plot.py')
 
 
 

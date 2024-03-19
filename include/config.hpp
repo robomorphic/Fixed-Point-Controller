@@ -21,8 +21,8 @@ const int FRAC_BITS_STANDARD = 31;
 const int INT_BITS_GRAVITY = 31;
 const int FRAC_BITS_GRAVITY = 31;
 
-const int INT_BITS_FD = 8;
-const int FRAC_BITS_FD = 8;
+const int INT_BITS_FD = 7;
+const int FRAC_BITS_FD = 7;
 
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
 typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;

@@ -44,5 +44,11 @@ If you'd like to sweep different fixed-point configurations, you can use the fol
 ./scripts.sh panda_sweep
 ```
 
+If you'd like to process the latest run's results:
+```
+python3 scripts/detailed_inspection.py # produces experiment_summary.json, containing all the important data in a nice format
+python3 scripts/experiment_summary_plot.py # produces ratio values, plots, ratio plot videos, and a nice json file for all ratio values
+```
+
 ### Pointers
 Start by reading [trajectory_tracking.cc](src/trajectory_tracking.cc) and [config.hpp](include/config.hpp). They contain the crucial parts, configs, and the main function.

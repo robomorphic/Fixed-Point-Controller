@@ -18,3 +18,5 @@ Makefile
 model_output/**
 model_output2/**
 model_output3/**
+model_output4/**
+experiment_data/*

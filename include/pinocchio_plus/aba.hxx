@@ -242,7 +242,7 @@ namespace pinocchioPass
         pass2_file << "SDinv_cols: \n" << SDinv_cols << std::endl;
         // the rest of the Minv is filled here
         Minv.block(jmodel.idx_v(),jmodel.idx_v()+jmodel.nv(),jmodel.nv(),nv_children).noalias()
-        = -SDinv_cols.transpose() * Fcrb.middleCols(jmodel.idx_v()+jmodel.nv(),nv_children);
+        = -SDinv_cols.transpose() * Fcrb.middleCols(jmodel.idx_v()+jmodel.nv(),nv_children); // 0 completely
         pass2_file << "Minv_updated_little: \n" << Minv << std::endl;
 
         if(parent > 0)

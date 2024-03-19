@@ -5,6 +5,11 @@ import glob
 import json
 from tqdm import tqdm
 import json
+from multiprocessing import Pool
+import os
+
+np.seterr(divide='ignore')
+THREAD_COUNT = 8
 
 def float_close_to_n(x, n):
     return abs(x - n) < 1e-6
@@ -143,20 +148,27 @@ def plot(data: dict, run_id: str):
         fractional_bits_fd)
 
 
-def plot_each_iter_of_a_run(run: str):
-    with open(run + '/experiment_summary.json', 'r') as f:
-        data = json.load(f)
+#def plot_each_iter_of_a_run(run: str, thread_index: int = 0, thread_count: int = 1):
+def plot_each_iter_of_a_run(tup):
+    run = tup[0]
+    data = tup[1]
+    thread_index = tup[2]
+    thread_count = tup[3]
+    
+    all_ratios = {}
     # iterate over fixed_Minv and original_Minv of each iteration
-    i = 0
+    i = thread_index
     png_list = []
     while True:
-        print(i)
+        if i % 1000 == 0:
+            print(f"Processing {i}")
         # if data[str(i)] exists
         if str(i) in data:
             fixed_Minv = data[str(i)]["fixed_point_Minv_output"]
             original_Minv = data[str(i)]["original_data_Minv_output"]
             fixed_Minv = list_string_to_matrix(fixed_Minv)
             original_Minv = list_string_to_matrix(original_Minv)
+
             #print("fixed_Minv", fixed_Minv)
             #print("original_Minv", original_Minv)
 
@@ -164,6 +176,7 @@ def plot_each_iter_of_a_run(run: str):
             #print("difference", difference)
             ratio = difference / np.array(original_Minv)
             #print("ratio", ratio)
+            all_ratios[i] = ratio.diagonal().tolist()
 
             # plot it, save it to run+i/ratio.png
             cmap = plt.cm.coolwarm
@@ -179,9 +192,12 @@ def plot_each_iter_of_a_run(run: str):
             # clear pyplot
             plt.close()
             
-            i += 1
+            i += thread_count
         else:
             break
+    # load all_ratios to a json
+    with open(f"{run}/all_ratios_{thread_index}.json", 'w') as f:
+        json.dump(all_ratios, f, indent=4)
     
     # save png_list
     with open(f"{run}/png_list.txt", 'w') as f:
@@ -189,27 +205,66 @@ def plot_each_iter_of_a_run(run: str):
             f.write(png + '\n')
 
     
+def late_process(run: str):
     # save all of these figures into an mp4 file
     # ffmpeg -f concat -safe 0 -r 1 -i f"{run}/ABA/png_list.txt" -c:v libx264 -vf "fps=25,format=yuv420p" f"{run}/ABA/ABA.mp4"
     import os
     os.system(f"ffmpeg -f concat -safe 0 -r 25 -i {run}/png_list.txt -c:v libx264 -vf 'fps=25,format=yuv420p' {run}/ABA.mp4")
+    # merge f"{run}/ABA/all_ratios_*.json" into one file
+    import glob
+    all_ratios = {}
+    for f in glob.glob(f"{run}/all_ratios_*.json"):
+        with open(f, 'r') as f:
+            data = json.load(f)
+        all_ratios.update(data)
+    with open(f"{run}/all_ratios.json", 'w') as f:
+        json.dump(all_ratios, f, indent=4)
     
-        
-
+def separate_data_by_thread(data: dict, thread_count: int):
+    separated_data = {}
+    for i in range(thread_count):
+        separated_data[i] = {}
+    i = 0
+    while True:
+        if str(i) not in data:
+            break
+        separated_data[i % thread_count][str(i)] = data[str(i)]
+        i += 1
+    return separated_data
 
 # I'll assume that I need to read and plot *every* run in the experiment data
 # each run is a different folder
 # the experiment data can be read from experiment_summary.json file, please do not read anything else here
 # the raw data is already pretty complicated, I don't want to make it more complicated
-all_runs = glob.glob("experiment_data/*")
-for run in all_runs:
+if __name__ == "__main__":
+    all_runs = glob.glob("experiment_data/*")
+    """
+    for run in all_runs:
+        with open(run + '/experiment_summary.json', 'r') as f:
+            data = json.load(f)
+        run_id = run.split('/')[-1]
+        separated_data = separate_data_by_thread(data, THREAD_COUNT)
+        print("data preprocessing done")
+        #plot(data, run_id)
+        #plot_each_iter_of_a_run(run)
+        with Pool(THREAD_COUNT) as p:
+            p.map(plot_each_iter_of_a_run, [
+                (run, separated_data[i], i, THREAD_COUNT) for i in range(THREAD_COUNT)
+            ])
+        late_process(run)
+    """
+    run = max(all_runs, key=os.path.getctime)
+    print("running: ", run)
     with open(run + '/experiment_summary.json', 'r') as f:
         data = json.load(f)
     run_id = run.split('/')[-1]
-    #plot(data, run_id)
-    plot_each_iter_of_a_run(run)
-
-
+    separated_data = separate_data_by_thread(data, THREAD_COUNT)
+    print("data preprocessing done")
+    with Pool(THREAD_COUNT) as p:
+        p.map(plot_each_iter_of_a_run, [
+            (run, separated_data[i], i, THREAD_COUNT) for i in range(THREAD_COUNT)
+        ])
+    late_process(run)
 
 
 

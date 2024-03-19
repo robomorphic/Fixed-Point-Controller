@@ -1,7 +1,7 @@
 # if the argument is "all_tests" then run all the tests
 if [ "$1" == "panda_sweep" ]; then
     echo "Running all tests"
-    python3 scripts/whole_test.py --min-gravity-int 8 --max-gravity-int 16 --min-gravity-frac 8 --max-gravity-frac 16 --min-fd-int 8 --max-fd-int 16 --min-fd-frac 8 --max-fd-frac 16
+    python3 scripts/whole_test.py --min-gravity-int 16 --max-gravity-int 16 --min-gravity-frac 16 --max-gravity-frac 16 --min-fd-int 6 --max-fd-int 16 --min-fd-frac 6 --max-fd-frac 16
 elif [ "$1" == "panda" ]; then
     echo "Running panda trajectory tracking"
     make

@@ -43,6 +43,7 @@ If you'd like to sweep different fixed-point configurations, you can use the fol
 ```bash
 ./scripts.sh panda_sweep
 ```
+The joint positions for each control iteration are stored in the `exp` directory, and other results are stored in `exp_data`.
 
 If you'd like to process the latest run's results:
 ```
@@ -52,3 +53,5 @@ python3 scripts/experiment_summary_plot.py # produces ratio values, plots, ratio
 
 ### Pointers
 Start by reading [trajectory_tracking.cc](src/trajectory_tracking.cc) and [config.hpp](include/config.hpp). They contain the crucial parts, configs, and the main function.
+
+Just continue looking for Ia and Dinv for sign changes!

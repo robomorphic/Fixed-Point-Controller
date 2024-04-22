@@ -28,22 +28,27 @@ namespace internalVerbose
       run(const SE3Tpl<Scalar,Options> & M,
           const Eigen::MatrixBase<Matrix6Type> & I)
       {
-        typedef SE3Tpl<Scalar,Options> SE3;
+        typedef SE3Tpl<exp_type_act_on,Options> SE3;
         typedef typename SE3::Matrix3 Matrix3;
         typedef typename SE3::Vector3 Vector3;
 
-        typedef const Eigen::Block<Matrix6Type,3,3> constBlock3;
+        // new Matrix6Type which has exp_type_act_on as Scalar
+        typedef typename Eigen::Matrix<exp_type_act_on,6,6,Options> Matrix6TypeActOn;
 
-        typedef typename PINOCCHIO_EIGEN_PLAIN_TYPE(Matrix6Type) ReturnType;
+        typedef const Eigen::Block<Matrix6TypeActOn,3,3> constBlock3;
+
+        typedef typename PINOCCHIO_EIGEN_PLAIN_TYPE(Matrix6TypeActOn) ReturnType;
         typedef Eigen::Block<ReturnType,3,3> Block3;
 
-        Matrix6Type & I_ = PINOCCHIO_EIGEN_CONST_CAST(Matrix6Type,I);
+        //Matrix6Type I_ = PINOCCHIO_EIGEN_CONST_CAST(Matrix6TypeActOn,I);
+        Matrix6TypeActOn I_ = I.template cast<exp_type_act_on>();
         const constBlock3 & Ai = I_.template block<3,3>(Inertia::LINEAR, Inertia::LINEAR);
         const constBlock3 & Bi = I_.template block<3,3>(Inertia::LINEAR, Inertia::ANGULAR);
         const constBlock3 & Di = I_.template block<3,3>(Inertia::ANGULAR, Inertia::ANGULAR);
 
-        const Matrix3 & R = M.rotation();
-        const Vector3 & t = M.translation();
+        auto M_cast = M.template cast<exp_type_act_on>();
+        const Matrix3 & R = M_cast.rotation();
+        const Vector3 & t = M_cast.translation();
 
         ReturnType res;
         // Rotation * Linear * Rotation^T
@@ -80,7 +85,10 @@ namespace internalVerbose
         Do.col(1) += t.cross(Bo.col(1));
         Do.col(2) += t.cross(Bo.col(2));
 
-        return res;
+        // Do not forget to convert the result to the original type
+        auto res_cast = res.template cast<Scalar>();
+
+        return res_cast;
       }
     };
 

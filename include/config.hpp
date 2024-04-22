@@ -14,21 +14,25 @@ const std::string current_path = std::filesystem::current_path().string();
 const std::string model_output_foldername = current_path + "/experiment_data/" + std::to_string(temp_time) + "/";
 const bool PINOCCHIO_VERBOSE = true;
 const bool USE_RENDER = true;
-std::string EXPERIMENT_DIRECTORY = "exp/03-19/";
-const int INT_BITS_STANDARD = 16;
-const int FRAC_BITS_STANDARD = 16;
+std::string EXPERIMENT_DIRECTORY = "exp/04-22/";
+const int INT_BITS_STANDARD = 31;
+const int FRAC_BITS_STANDARD = 31;
 
 const int INT_BITS_GRAVITY = 16;
 const int FRAC_BITS_GRAVITY = 16;
 
-const int INT_BITS_FD = 7;
+const int INT_BITS_FD = 6;
 const int FRAC_BITS_FD = 7;
 
+const int INT_BITS_ACT_ON = 16;
+const int FRAC_BITS_ACT_ON = 16;
+
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
-typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
+//typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
 typedef FixedPoint<INT_BITS_GRAVITY, FRAC_BITS_GRAVITY> exp_type_gravity;
 typedef FixedPoint<INT_BITS_FD, FRAC_BITS_FD> exp_type_fd;
-// typedef double exp_type;
+typedef FixedPoint<INT_BITS_ACT_ON, FRAC_BITS_ACT_ON> exp_type_act_on;
+typedef double exp_type;
 
 // PD controller uses this position as its target
 exp_type fixed_pos[] = {-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442};

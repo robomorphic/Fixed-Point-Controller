@@ -2,7 +2,7 @@
 import os
 import argparse
 
-EXPERIMENT_DIRECTORY = "exp/03-19/"
+EXPERIMENT_DIRECTORY = "exp/04-22/"
 
 config_file = """
 #ifndef CONFIG_HPP
@@ -30,11 +30,15 @@ const int FRAC_BITS_GRAVITY = {frac_bits_gravity};
 const int INT_BITS_FD = {int_bits_fd};
 const int FRAC_BITS_FD = {frac_bits_fd};
 
+const int INT_BITS_ACT_ON = 16;
+const int FRAC_BITS_ACT_ON = 16;
+
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
-typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
+//typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
 typedef FixedPoint<INT_BITS_GRAVITY, FRAC_BITS_GRAVITY> exp_type_gravity;
 typedef FixedPoint<INT_BITS_FD, FRAC_BITS_FD> exp_type_fd;
-// typedef double exp_type;
+typedef FixedPoint<INT_BITS_ACT_ON, FRAC_BITS_ACT_ON> exp_type_act_on;
+typedef double exp_type;
 
 // PD controller uses this position as its target
 exp_type fixed_pos[] = {{-0.002493706342403138, -0.703703218059273, 0.11392999851084838, -2.205860629386432, 0.06983090103997125, 1.5706197776794442}};
@@ -58,7 +62,7 @@ struct {{
     
     // This is tolerance for the joint space
     const double GOAL_TOLERANCE = 0.1;
-    const double EXP_HARD_STOP_TIME = 40.0;
+    const double EXP_HARD_STOP_TIME = 5.0;
 }} TrajectoryVars;
 
 #endif
@@ -92,6 +96,10 @@ gravity_int_bits_list = list(range(min_gravity_int, max_gravity_int+1))
 gravity_frac_bits_list = list(range(min_gravity_frac, max_gravity_frac+1))
 fd_int_bits_list = list(range(min_fd_int, max_fd_int+1))
 fd_frac_bits_list = list(range(min_fd_frac, max_fd_frac+1))
+print(f'gravity_int_bits_list: {gravity_int_bits_list}')
+print(f'gravity_frac_bits_list: {gravity_frac_bits_list}')
+print(f'fd_int_bits_list: {fd_int_bits_list}')
+print(f'fd_frac_bits_list: {fd_frac_bits_list}')
 
 for gravity_int_bit in gravity_int_bits_list:
     for gravity_frac_bit in gravity_frac_bits_list:
@@ -101,13 +109,14 @@ for gravity_int_bit in gravity_int_bits_list:
                     print(f'Experiment with gravity_int_bit: {gravity_int_bit}, gravity_frac_bit: {gravity_frac_bit}, fd_int_bit: {fd_int_bit}, fd_frac_bit: {fd_frac_bit} exists. Skipping...')
                     continue
                 with open('include/config.hpp', 'w') as f:
-                    f.write(config_file.format(int_bits=16, frac_bits=16, int_bits_gravity=gravity_int_bit, frac_bits_gravity=gravity_frac_bit, int_bits_fd=fd_int_bit, frac_bits_fd=fd_frac_bit, experiment_directory=EXPERIMENT_DIRECTORY))
+                    f.write(config_file.format(int_bits=31, frac_bits=31, int_bits_gravity=gravity_int_bit, frac_bits_gravity=gravity_frac_bit, int_bits_fd=fd_int_bit, frac_bits_fd=fd_frac_bit, experiment_directory=EXPERIMENT_DIRECTORY))
                 print(f'Compiling with gravity_int_bit: {gravity_int_bit}, gravity_frac_bit: {gravity_frac_bit}, fd_int_bit: {fd_int_bit}, fd_frac_bit: {fd_frac_bit}')
                 # compile the project
-                os.system('make > /dev/null')
-                os.system('./bin/trajectory_tracking ../mujoco_menagerie/franka_emika_panda/scene.xml > /dev/null')
+                print(f"Test: gravity_int_bit: {gravity_int_bit}, gravity_frac_bit: {gravity_frac_bit}, fd_int_bit: {fd_int_bit}, fd_frac_bit: {fd_frac_bit}")
+                os.system('make')
+                os.system('./bin/trajectory_tracking ../mujoco_menagerie/franka_emika_panda/scene.xml')
                 os.system('python3 scripts/detailed_inspection.py')
-                os.system('python3 scripts/experiment_summary_plot.py')
+                #os.system('python3 scripts/experiment_summary_plot.py')
 
 
 

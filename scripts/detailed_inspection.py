@@ -137,5 +137,6 @@ read_aba_info()
 # write it into a json file with indentation
 
 import json
-with open(latest_folder + '/experiment_summary.json', 'w') as f:
+with open('experiment_summaries' 
+          + f'/experiment_summary_{experiment_info["integer_bits_standard"]}_{experiment_info["fractional_bits_standard"]}_{experiment_info["integer_bits_gravity"]}_{experiment_info["fractional_bits_gravity"]}_{experiment_info["integer_bits_fd"]}_{experiment_info["fractional_bits_fd"]}.json', 'w') as f:
     json.dump(experiment_info, f, indent=4)

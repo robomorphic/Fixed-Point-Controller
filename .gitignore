@@ -20,4 +20,8 @@ model_output2/**
 model_output3/**
 model_output4/**
 experiment_data/*
+experiment_data_old/*
 experiment_data_backup/*
+experiment_summaries/*
+fig_backup/*
+

@@ -3,26 +3,26 @@ import numpy as np
 
 import glob
 
-import traj
+import scripts.traj_panda as traj_panda
 
-PARENT_DIRECTORY = 'exp/02-25'
+PARENT_DIRECTORY = 'exp/04-22'
 
 
 def calculate_goal(time):
     # find the minimum time data that is bigger than time
     # Slow :(
     index = 0
-    for i, data in enumerate(traj.time_array):
+    for i, data in enumerate(traj_panda.time_array):
         if data > time:
             index = i
             break
 
     # the goal is between index-1 and index
     # we'll do a simple linear interpolation
-    prev_pos = np.array(traj.position_array[index-1])
-    next_pos = np.array(traj.position_array[index])
-    prev_time = traj.time_array[index-1]
-    next_time = traj.time_array[index]
+    prev_pos = np.array(traj_panda.position_array[index-1])
+    next_pos = np.array(traj_panda.position_array[index])
+    prev_time = traj_panda.time_array[index-1]
+    next_time = traj_panda.time_array[index]
 
     # calculate the time difference
     time_diff = next_time - prev_time

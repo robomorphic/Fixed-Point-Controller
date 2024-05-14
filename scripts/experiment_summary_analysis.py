@@ -40,8 +40,6 @@ def list_string_to_matrix_v2(data: str):
     data = np.array(data)
     return data
 
-
-
 # This function finds out the sparsity of the data, and returns the sparse versions
 # For diagonal matrices, it will return a vector with the diagonal elements
 # Otherwise, it is not implemented yet
@@ -151,7 +149,6 @@ def Minv_analysis(json_file: str):
     # now repeat the same, but calculate rmse and plot
     # calculate the rmse for each column in error
     #print("rmse: ", np.sqrt(np.mean(df['error']**2)))
-
 
 # Assume all inputs will be matrices
 def joint_by_joint_key_analysis_matrix(json_file: str, key: str):
@@ -334,15 +331,4 @@ if __name__ == '__main__':
             continue # this is a folder
         #Minv_analysis(summary_file)
         joint_by_joint_key_analysis_matrix(summary_file, "Yaba")
-
-
-
-
-
-
-    
-
-
-
-
 

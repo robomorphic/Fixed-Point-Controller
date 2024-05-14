@@ -1,29 +1,22 @@
 import glob
 
-EXPERIMENT_DIRECTORY = "exp/02-25/"
+EXPERIMENT_DIRECTORY = "exp/04-16/"
 
 folders = glob.glob(f'{EXPERIMENT_DIRECTORY}/*')
 
 print(folders)
 
-# remove the {EXPERIMENT_DIRECTORY} part
+# remove the exp/02-20/ part
 folders = [folder[len(EXPERIMENT_DIRECTORY):] for folder in folders]
 
 print(folders)
 # separate the int_bits and frac_bits
 folders = [folder.split('_') for folder in folders]
 
-GRAVITY_INT = '9'
-GRAVITY_FRAC = '8'
-
 # convert all to ints
-# filter the list so that only the ones with two 8's are left
-folders = [[int(x) for x in folder] for folder in folders if folder[0] == GRAVITY_INT and folder[1] == GRAVITY_FRAC]
+folders = [[int(x) for x in folder] for folder in folders]
 
 print(folders)
-
-# now remove the first two elements from each folder
-folders = [folder[2:] for folder in folders]
 
 folders = sorted(folders)
 
@@ -42,10 +35,9 @@ import matplotlib.pyplot as plt
 from score import calculate_score_from_folder
 
 #total_scores = [[calculate_score_from_folder(int_bits, frac_bits) for frac_bits in range(min_frac_bits, max_frac_bits+1)] for int_bits in range(min_int_bits, max_int_bits+1)]
-print("total scores")
-total_scores = np.array([[calculate_score_from_folder(GRAVITY_INT, GRAVITY_FRAC, int_bits, frac_bits) for frac_bits in range(min_frac_bits, max_frac_bits+1)] for int_bits in range(min_int_bits, max_int_bits+1)])
-print('end')
-print(total_scores)
+
+total_scores = np.array([[calculate_score_from_folder(int_bits, frac_bits) for frac_bits in range(min_frac_bits, max_frac_bits+1)] for int_bits in range(min_int_bits, max_int_bits+1)])
+
 
 fig, ax = plt.subplots()
 cax = ax.matshow(total_scores)
@@ -72,10 +64,10 @@ for i in range(len(range(min_int_bits, max_int_bits+1))):
                        ha="center", va="center", color="w")
 
 # name the x and y axis
-ax.set_xlabel("Forward Dynamics Fractional Bits")
-ax.set_ylabel("Forward Dynamics Integer Bits")
+ax.set_xlabel("Fractional Bits")
+ax.set_ylabel("Integer Bits")
 
-ax.set_title(f"Avg Euclidean Distance in Joint Space for Gravity Integer Bits: {GRAVITY_INT}, Gravity Fractional Bits: {GRAVITY_FRAC}")
+ax.set_title("Avg Euclidean Distance in Joint Space")
 fig.tight_layout()
 
 plt.show()

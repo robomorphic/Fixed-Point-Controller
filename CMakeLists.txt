@@ -5,7 +5,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 # Default to GLVND if available.
 set(CMAKE_POLICY_DEFAULT_CMP0072 NEW)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -ferror-limit=10000")
 
 # This line has to appear before 'PROJECT' in order to be able to disable incremental linking
 set(MSVC_INCREMENTAL_DEFAULT ON)
@@ -108,6 +108,20 @@ target_include_directories(trajectory_tracking PUBLIC /usr/local/include ${CMAKE
 #)
 # Add the flags to your target
 #target_link_options(trajectory_tracking PUBLIC ${PINOCCHIO_PKG_CONFIG})
+
+add_executable(arm_uniform_data include/pinocchio_plus/aba.hxx src/arm_uniform_fd_data_collection.cpp)
+target_compile_options(arm_uniform_data PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS} ${pinocchio_CFLAGS_OTHER})
+target_link_libraries(
+  arm_uniform_data
+  mujoco::mujoco
+  glfw
+  Threads::Threads
+  pinocchio
+  osqp::osqp
+  ${Boost_LIBRARIES}
+  Eigen3::Eigen
+)
+target_include_directories(arm_uniform_data PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
 if(APPLE AND MUJOCO_BUILD_MACOS_FRAMEWORKS)
   embed_in_bundle(basic simulate)

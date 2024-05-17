@@ -2,7 +2,7 @@
 import os
 import argparse
 
-EXPERIMENT_DIRECTORY = "exp/04-22/"
+EXPERIMENT_DIRECTORY = "exp/05-16/"
 
 config_file = """
 #ifndef CONFIG_HPP
@@ -10,16 +10,6 @@ config_file = """
 
 #include <FixedPoint/fixed_point.hpp> // for OverflowMode
 
-const std::string urdf_filename = std::string("models/panda.urdf");
-
-// do not change CONTROLLER_ABA_PRINT_INDEX, it is used to create a new directory for each iteration
-long long CONTROLLER_ABA_PRINT_INDEX = 0;
-long long temp_time = std::time(0);
-// get current path
-const std::string current_path = std::filesystem::current_path().string();
-const std::string model_output_foldername = current_path + "/experiment_data/" + std::to_string(temp_time) + "/";
-const bool PINOCCHIO_VERBOSE = true;
-const bool USE_RENDER = false;
 std::string EXPERIMENT_DIRECTORY = "{experiment_directory}";
 const int INT_BITS_STANDARD = {int_bits};
 const int FRAC_BITS_STANDARD = {frac_bits};
@@ -32,6 +22,17 @@ const int FRAC_BITS_FD = {frac_bits_fd};
 
 const int INT_BITS_ACT_ON = 16;
 const int FRAC_BITS_ACT_ON = 16;
+
+const std::string urdf_filename = std::string("models/panda.urdf");
+
+// do not change CONTROLLER_ABA_PRINT_INDEX, it is used to create a new directory for each iteration
+long long CONTROLLER_ABA_PRINT_INDEX = 0;
+long long temp_time = std::time(0);
+// get current path
+const std::string current_path = std::filesystem::current_path().string();
+const std::string model_output_foldername = current_path + "/experiment_data/" + std::to_string(temp_time) + "/";
+const bool PINOCCHIO_VERBOSE = true;
+const bool USE_RENDER = false;
 
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
 //typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
@@ -62,7 +63,7 @@ struct {{
     
     // This is tolerance for the joint space
     const double GOAL_TOLERANCE = 0.1;
-    const double EXP_HARD_STOP_TIME = 5.0;
+    const double EXP_HARD_STOP_TIME = 10.0;
 }} TrajectoryVars;
 
 #endif

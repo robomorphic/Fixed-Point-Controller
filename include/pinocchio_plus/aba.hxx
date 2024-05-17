@@ -19,7 +19,6 @@ using namespace pinocchio;
 
 namespace internalVerbose
   {
-
     template<typename Scalar>
     struct SE3actOnVerbose
     {
@@ -129,9 +128,9 @@ namespace pinocchioPass
       typedef typename Model::JointIndex JointIndex;
       const JointIndex & i = jmodel.id();
       pass1_file << "Joint: " << i << std::endl;
-      pass1_file << "model.lever: " << std::endl;
-      pass1_file << model.inertias[i].lever() << std::endl;
-      pass1_file << "model.inertia_before_pass1: " << std::endl;
+      //pass1_file << "model.lever: " << std::endl; Lever is always the same 
+      //pass1_file << model.inertias[i].lever() << std::endl;
+      pass1_file << "model.inertia: " << std::endl;
       pass1_file << model.inertias[i] << std::endl;
       //pass1_file << "model.inertia_before_pass1_mass: " << std::endl;
       //pass1_file << model.inertias[i].mass() << std::endl;
@@ -139,7 +138,7 @@ namespace pinocchioPass
       //pass1_file << model.inertias[i].lever() << std::endl;
       //pass1_file << "model.inertia_before_pass1_alphaskewsquare: " << std::endl;
       //pass1_file << model.inertias[i].AlphaSkewSquare() << std::endl;
-      pass1_file << "model.inertia_before_pass1_matrix: " << std::endl;
+      pass1_file << "model.inertia_matrix: " << std::endl;
       pass1_file << model.inertias[i].matrix() << std::endl;
       //this one is important
       auto old_buf = std::cout.rdbuf();
@@ -179,8 +178,9 @@ namespace pinocchioPass
       // Inertia matrix of the "subtree" expressed as dense matrix
       // I currently don't know where the inertias are calculated, but I know it is pretty easy to calculate them
       data.Yaba[i] = model.inertias[i].matrix();
-      pass1_file << "Yaba: " << std::endl;
-      pass1_file << data.Yaba[i] << std::endl;
+      // Yaba is Ia_before_pass2
+      //pass1_file << "Yaba: " << std::endl;
+      //pass1_file << data.Yaba[i] << std::endl;
     }
 
   };
@@ -219,40 +219,46 @@ namespace pinocchioPass
 
       typename Inertia::Matrix6 & Ia = data.Yaba[i];
       typename Data::RowMatrixXs & Minv = data.Minv;
-      typename Data::Matrix6x & Fcrb = data.Fcrb[0];
+      //typename Data::Matrix6x & Fcrb = data.Fcrb[0];
       //typename Data::Matrix6x & FcrbTmp = data.Fcrb.back();
 
       //pass2_file << "Fcrb_before_pass2: " << std::endl;
       //pass2_file << Fcrb << std::endl;
-      pass2_file << "Minv_before_pass2: " << std::endl;
-      pass2_file << Minv << std::endl;
-      pass2_file << "Ia_before_pass2: " << std::endl;
-      pass2_file << Ia << std::endl;
-      pass2_file << "jdata.U(): " << std::endl;
-      pass2_file << jdata.U() << std::endl;
+      //pass2_file << "Minv_before_pass2: " << std::endl;
+      //pass2_file << Minv << std::endl;
+      //pass2_file << "Ia_before_pass2: " << std::endl; Ia does not change in the pass2
+      //pass2_file << Ia << std::endl;
+      // jdata.U() = Joint space inertia matrix square root (upper triangular part) computed with a Cholesky Decomposition.
+      //pass2_file << "jdata.U(): " << std::endl;
+      //pass2_file << jdata.U() << std::endl;
       // Inverse ABA
       auto old_buf = std::cout.rdbuf();
       std::cout.rdbuf(pass2_file.rdbuf());
       jmodel.calc_aba(jdata.derived(), Ia, parent > 0);
       std::cout.rdbuf(old_buf);
 
-      typedef typename SizeDepType<JointModel::NV>::template ColsReturn<typename Data::Matrix6x>::Type ColsBlock;
+      //typedef typename SizeDepType<JointModel::NV>::template ColsReturn<typename Data::Matrix6x>::Type ColsBlock;
 
       // What is the purpose of this?
-      // Unknown part 2
-      ColsBlock U_cols = jmodel.jointCols(data.IS);
-      // jdata.U() = Joint space inertia matrix square root (upper triangular part) computed with a Cholesky Decomposition.
-      forceSet::se3Action(data.oMi[i],jdata.U(),U_cols); // expressed in the world frame
+      // I removed it and it didn't affect the results for Panda arm
+      //ColsBlock U_cols = jmodel.jointCols(data.IS);
+      //forceSet::se3Action(data.oMi[i],jdata.U(),U_cols); // expressed in the world frame
 
       // Block of size (p,q), starting at (i,j) matrix.block(i,j,p,q);
       Minv.block(jmodel.idx_v(),jmodel.idx_v(),jmodel.nv(),jmodel.nv()) = jdata.Dinv();
-      pass2_file << "U_cols: \n" << U_cols << std::endl;
-      pass2_file << "idx_v: \n" << jmodel.idx_v() << std::endl;
-      pass2_file << "nv: \n" << jmodel.nv() << std::endl;
-      pass2_file << "jdata.Dinv(): \n" << jdata.Dinv() << std::endl;
+      //pass2_file << "U_cols: \n" << U_cols << std::endl;
+      // idx_v is jmodel.id - 1
+      //pass2_file << "idx_v: \n" << jmodel.idx_v() << std::endl;
+      // nv is always 1, don'w know what it represents
+      //pass2_file << "nv: \n" << jmodel.nv() << std::endl;
+      pass2_file << "jdata.Dinv()_Minv_element: \n" << jdata.Dinv() << std::endl;
       const int nv_children = data.nvSubtree[i] - jmodel.nv();
-      pass2_file << "nvSubtree[i]: \n" << data.nvSubtree[i] << std::endl;
-      pass2_file << "nv_children: \n" << nv_children << std::endl;
+      // joint_id: 1 -> nvSubtree[i]: 6
+      // joint_id: 2 -> nvSubtree[i]: 5 ...
+      //pass2_file << "nvSubtree[i]: \n" << data.nvSubtree[i] << std::endl;
+      // nv children is the number of children of the joint in the whole subtree
+      // nv_children: nvSubtree[i] - 1 
+      //pass2_file << "nv_children: \n" << nv_children << std::endl;
 
       if(nv_children > 0)
       {
@@ -293,18 +299,20 @@ namespace pinocchioPass
         //Fcrb.middleCols(jmodel.idx_v(),data.nvSubtree[i]).noalias()
         //= U_cols * Minv.block(jmodel.idx_v(),jmodel.idx_v(),jmodel.nv(),data.nvSubtree[i]);
       }
-      pass2_file << "Fcrb_after_pass2(Fcrb is the spatial forces): " << std::endl;
-      PRINT_MATRIX(Fcrb, pass2_file);
-      pass2_file << "Minv_after_pass2: " << std::endl;
-      pass2_file << Minv << std::endl; 
+      // Fcrb is always 0 for Panda arm in our experiments
+      //pass2_file << "Fcrb_after_pass2(Fcrb is the spatial forces): " << std::endl;
+      //PRINT_MATRIX(Fcrb, pass2_file);
+      //pass2_file << "Minv: " << std::endl;
+      //pass2_file << Minv << std::endl; 
 
       if(parent > 0){
         //pass2_file << "liMi[i]: " << std::endl;
         //pass2_file << data.liMi[i] << std::endl;
-        pass2_file << "Yaba[parent]: " << std::endl;
-        pass2_file << data.Yaba[parent] << std::endl;
+        // Yaba[parent] is the previous joint's inertia matrix
+        //pass2_file << "Yaba[parent]: " << std::endl;
+        //pass2_file << data.Yaba[parent] << std::endl;
         data.Yaba[parent] += internalVerbose::SE3actOnVerbose<Scalar>::run(data.liMi[i], Ia);
-        pass2_file << "Yaba[parent]_after: " << std::endl;
+        pass2_file << "Yaba[parent]: " << std::endl;
         pass2_file << data.Yaba[parent] << std::endl;
       }
     }

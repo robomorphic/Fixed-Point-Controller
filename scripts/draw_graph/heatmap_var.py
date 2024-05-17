@@ -1,6 +1,6 @@
 import glob
 
-EXPERIMENT_DIRECTORY = "exp/04-22/"
+EXPERIMENT_DIRECTORY = "exp/05-16/"
 
 folders = glob.glob(f'{EXPERIMENT_DIRECTORY}/*')
 

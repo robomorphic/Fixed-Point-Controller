@@ -112,15 +112,18 @@ def read_aba_info():
         folder_index = int(folder.split('/')[-1])
         experiment_info[folder_index] = {}
         # read the fixed_point.txt
-        with open(folder + '/fixed_point_data.txt', 'r') as f:
-            fixed_point = f.read()
-            fixed_point = fixed_point.split('\n')
-            experiment_info[folder_index]['fixed_point_Minv_output'] = fixed_point
-        # read the original_data.txt
-        with open(folder + '/original_data.txt', 'r') as f:
-            original_data = f.read()
-            original_data = original_data.split('\n')
-            experiment_info[folder_index]['original_data_Minv_output'] = original_data
+        try:
+            with open(folder + '/fixed_point_data.txt', 'r') as f:
+                fixed_point = f.read()
+                fixed_point = fixed_point.split('\n')
+                experiment_info[folder_index]['fixed_point_Minv_output'] = fixed_point
+            # read the original_data.txt
+            with open(folder + '/original_data.txt', 'r') as f:
+                original_data = f.read()
+                original_data = original_data.split('\n')
+                experiment_info[folder_index]['original_data_Minv_output'] = original_data
+        except: # I did not write to fixed_point_data.txt and original_data.txt, so we can safely do without it
+            pass 
         # read the pass1.txt
         read_pass1_info(folder, folder_index)
         # read the pass2.txt

@@ -5,7 +5,7 @@ import glob
 
 import scripts.traj_panda as traj_panda
 
-PARENT_DIRECTORY = 'exp/04-22'
+PARENT_DIRECTORY = 'exp/05-16'
 
 
 def calculate_goal(time):

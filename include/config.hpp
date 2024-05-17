@@ -4,6 +4,20 @@
 
 #include <FixedPoint/fixed_point.hpp> // for OverflowMode
 
+std::string EXPERIMENT_DIRECTORY = "exp/05-16/";
+const int INT_BITS_STANDARD = 31;
+const int FRAC_BITS_STANDARD = 31;
+
+const int INT_BITS_GRAVITY = 16;
+const int FRAC_BITS_GRAVITY = 16;
+
+const int INT_BITS_FD = 24;
+const int FRAC_BITS_FD = 24;
+
+const int INT_BITS_ACT_ON = 24;
+const int FRAC_BITS_ACT_ON = 24;
+
+
 const std::string urdf_filename = std::string("models/panda.urdf");
 
 // do not change CONTROLLER_ABA_PRINT_INDEX, it is used to create a new directory for each iteration
@@ -13,19 +27,7 @@ long long temp_time = std::time(0);
 const std::string current_path = std::filesystem::current_path().string();
 const std::string model_output_foldername = current_path + "/experiment_data/" + std::to_string(temp_time) + "/";
 const bool PINOCCHIO_VERBOSE = true;
-const bool USE_RENDER = true;
-std::string EXPERIMENT_DIRECTORY = "exp/04-22/";
-const int INT_BITS_STANDARD = 31;
-const int FRAC_BITS_STANDARD = 31;
-
-const int INT_BITS_GRAVITY = 16;
-const int FRAC_BITS_GRAVITY = 16;
-
-const int INT_BITS_FD = 6;
-const int FRAC_BITS_FD = 7;
-
-const int INT_BITS_ACT_ON = 16;
-const int FRAC_BITS_ACT_ON = 16;
+const bool USE_RENDER = false;
 
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
 //typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
@@ -56,7 +58,7 @@ struct {
     
     // This is tolerance for the joint space
     const double GOAL_TOLERANCE = 0.1;
-    const double EXP_HARD_STOP_TIME = 40.0;
+    const double EXP_HARD_STOP_TIME = 10.0;
 } TrajectoryVars;
 
 #endif

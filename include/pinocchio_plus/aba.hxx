@@ -95,6 +95,8 @@ namespace internalVerbose
 
 namespace pinocchioPass
 {
+
+
   /// A very simple pass
   /// We are calculating the relative and absolute joint placements
   /// And calculate each joint's inertia matrix
@@ -130,8 +132,8 @@ namespace pinocchioPass
       pass1_file << "Joint: " << i << std::endl;
       //pass1_file << "model.lever: " << std::endl; Lever is always the same 
       //pass1_file << model.inertias[i].lever() << std::endl;
-      pass1_file << "model.inertia: " << std::endl;
-      pass1_file << model.inertias[i] << std::endl;
+      //pass1_file << "model.inertia: " << std::endl;
+      //pass1_file << model.inertias[i] << std::endl;
       //pass1_file << "model.inertia_before_pass1_mass: " << std::endl;
       //pass1_file << model.inertias[i].mass() << std::endl;
       //pass1_file << "model.inertia_before_pass1_lever: " << std::endl;
@@ -149,16 +151,20 @@ namespace pinocchioPass
       // calculate the vector of relative joint placements (w.r.t. the body parent)
       const JointIndex & parent = model.parents[i];
       data.liMi[i] = model.jointPlacements[i] * jdata.M();
-      pass1_file << "Relative_joint_placement: " << std::endl;
-      pass1_file << data.liMi[i];
+      pass1_file << "Relative_joint_placement_rotation: " << std::endl;
+      pass1_file << data.liMi[i].rotation() << std::endl;
+      pass1_file << "Relative_joint_placement_translation: " << std::endl;
+      pass1_file << data.liMi[i].translation() << std::endl;
 
       // calculate the absolute joint placements
       if (parent>0)
         data.oMi[i] = data.oMi[parent] * data.liMi[i];
       else
         data.oMi[i] = data.liMi[i];
-      pass1_file << "Absolute_joint_placement: " << std::endl;
-      pass1_file << data.oMi[i];
+      pass1_file << "Absolute_joint_placement_rotation: " << std::endl;
+      pass1_file << data.oMi[i].rotation() << std::endl;
+      pass1_file << "Absolute_joint_placement_translation: " << std::endl;
+      pass1_file << data.oMi[i].translation() << std::endl;
 
       /*
       // This seems to be unnecessary. Opened an issue for this.

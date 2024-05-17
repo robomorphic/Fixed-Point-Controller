@@ -11,12 +11,11 @@ const int FRAC_BITS_STANDARD = 31;
 const int INT_BITS_GRAVITY = 16;
 const int FRAC_BITS_GRAVITY = 16;
 
-const int INT_BITS_FD = 24;
-const int FRAC_BITS_FD = 24;
+const int INT_BITS_FD = 12;
+const int FRAC_BITS_FD = 12;
 
-const int INT_BITS_ACT_ON = 24;
-const int FRAC_BITS_ACT_ON = 24;
-
+const int INT_BITS_ACT_ON = 12; // let's test uniform precision for now
+const int FRAC_BITS_ACT_ON = 12;
 
 const std::string urdf_filename = std::string("models/panda.urdf");
 

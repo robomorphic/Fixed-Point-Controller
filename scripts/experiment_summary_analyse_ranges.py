@@ -102,9 +102,10 @@ def analyse(json_file: str):
         for key2 in data[key1].keys():
             for key3 in data[key1][key2].keys():
                 try:
-                    range_template[key2][key3]['min'] = np.minimum(range_template[key2][key3]['min'], np.min(data[key1][key2][key3]))
-                    range_template[key2][key3]['max'] = np.maximum(range_template[key2][key3]['max'], np.max(data[key1][key2][key3]))
-                except:
+                    range_template[key2][key3]['min'] = min(range_template[key2][key3]['min'], np.min(data[key1][key2][key3]))
+                    range_template[key2][key3]['max'] = max(range_template[key2][key3]['max'], np.max(data[key1][key2][key3]))
+                except Exception as e:
+                    print("exception: ", e)
                     print("Error in key1: ", key1, " key2: ", key2, " key3: ", key3)
                     print("Data: ", data[key1][key2][key3])
                     print("Range: ", range_template[key2][key3])

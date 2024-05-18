@@ -19,6 +19,11 @@ using namespace pinocchio;
 
 namespace internalVerbose
   {
+    // Usually this is a terrible approach to put pass2_file variable here
+    // But I need to create it in pass2, and pass it to internalVerbose::SE3actOnVerbose::run
+    // And when I tried that I got the error
+    // error: call to implicitly-deleted copy constructor of 'std::ofstream' (aka 'basic_ofstream<char>')
+    std::ofstream pass2_file;
     template<typename Scalar>
     struct SE3actOnVerbose
     {
@@ -49,6 +54,9 @@ namespace internalVerbose
         const Matrix3 & R = M_cast.rotation();
         const Vector3 & t = M_cast.translation();
 
+        pass2_file << "Rotation: " << std::endl << R << std::endl;
+        pass2_file << "Translation: " << std::endl << t << std::endl;
+
         ReturnType res;
         // Rotation * Linear * Rotation^T
         Block3 Ao = res.template block<3,3>(Inertia::LINEAR, Inertia::LINEAR);
@@ -63,26 +71,32 @@ namespace internalVerbose
 
         Do.noalias() = R*Ai; // tmp variable
         Ao.noalias() = Do*R.transpose(); // Rotation * Linear * Rotation^T
+        pass2_file << "Ao_Rotation_Linear_Rotation^T: " << std::endl << Ao << std::endl;
 
         Do.noalias() = R*Bi; // tmp variable
         Bo.noalias() = Do*R.transpose();
+        pass2_file << "Bo_Rotation_Lin_Ang_Rotation^T: " << std::endl << Bo << std::endl;
 
         Co.noalias() = R*Di; // tmp variable
         Do.noalias() = Co*R.transpose();
+        pass2_file << "Do_Rotation_Ang_Rotation^T: " << std::endl << Do << std::endl;
 
         Do.row(0) += t.cross(Bo.col(0));
         Do.row(1) += t.cross(Bo.col(1));
         Do.row(2) += t.cross(Bo.col(2));
+        pass2_file << "Do_Rotation_Ang_Rotation^T_after: " << std::endl << Do << std::endl;
 
         Co.col(0) = t.cross(Ao.col(0));
         Co.col(1) = t.cross(Ao.col(1));
         Co.col(2) = t.cross(Ao.col(2));
         Co += Bo.transpose();
+        pass2_file << "Co_Rotation_Ang_Rotation^T_after: " << std::endl << Co << std::endl;
 
         Bo = Co.transpose();
         Do.col(0) += t.cross(Bo.col(0));
         Do.col(1) += t.cross(Bo.col(1));
         Do.col(2) += t.cross(Bo.col(2));
+        pass2_file << "Do_Rotation_Ang_Rotation^T_after2: " << std::endl << Do << std::endl;
 
         // Do not forget to convert the result to the original type
         auto res_cast = res.template cast<Scalar>();
@@ -145,6 +159,8 @@ namespace pinocchioPass
       //this one is important
       auto old_buf = std::cout.rdbuf();
       std::cout.rdbuf(pass1_file.rdbuf());
+      // There is only one sine and cosine operation here
+      // This is not printed, I don't know why
       jmodel.calc(jdata.derived(),q.derived());
       std::cout.rdbuf(old_buf);
 
@@ -209,11 +225,11 @@ namespace pinocchioPass
                      const Model & model,
                      Data & data)
     {
-
+      using namespace internalVerbose;
       std::string folder_path = model_output_foldername + "ABA/" + std::to_string(CONTROLLER_ABA_PRINT_INDEX) + "/";
       std::filesystem::create_directories(folder_path);
       std::string pass2_file_path = folder_path + "pass2.txt";
-      std::ofstream pass2_file;
+      //std::ofstream pass2_file;
       pass2_file.open(pass2_file_path, std::ios::app);
 
       typedef typename Model::JointIndex JointIndex;
@@ -321,6 +337,7 @@ namespace pinocchioPass
         pass2_file << "Yaba[parent]: " << std::endl;
         pass2_file << data.Yaba[parent] << std::endl;
       }
+      pass2_file.close();
     }
   };
 

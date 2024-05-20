@@ -12,7 +12,6 @@
 
 #define PRINT_MATRIX(x, of) for(int i = 0; i < x.rows(); i++) { for(int j = 0; j < x.cols(); j++) { of << std::setprecision(4) << x(i, j) << " "; } of << std::endl; }
 
-/// @cond DEV
 // bad, very bad :(
 using namespace pinocchio;
 
@@ -157,16 +156,21 @@ namespace pinocchioPass
       pass1_file << "model.inertia_matrix: " << std::endl;
       pass1_file << model.inertias[i].matrix() << std::endl;
       //this one is important
-      auto old_buf = std::cout.rdbuf();
-      std::cout.rdbuf(pass1_file.rdbuf());
+      //auto old_buf = std::cout.rdbuf();
+      //std::cout.rdbuf(pass1_file.rdbuf());
       // There is only one sine and cosine operation here
-      // This is not printed, I don't know why
-      jmodel.calc(jdata.derived(),q.derived());
-      std::cout.rdbuf(old_buf);
+      //jmodel.calc(jdata.derived(),q.derived());
+      //std::cout.rdbuf(old_buf);
+      // I decided to move the jmodel.calc function to here, for the same purposes as calc_aba
+      const Scalar & qj = q[jmodel.idx_q()];
+      Scalar ca, sa; SINCOS(qj,&sa,&ca);
+      //jdata.derived().M.setValues(sa,ca);
+      // axis is always 2, may change for other robots
+      auto jdata_M = TransformRevoluteTpl<Scalar,Options, 2>(sa,ca);
 
       // calculate the vector of relative joint placements (w.r.t. the body parent)
       const JointIndex & parent = model.parents[i];
-      data.liMi[i] = model.jointPlacements[i] * jdata.M();
+      data.liMi[i] = model.jointPlacements[i] * jdata_M;
       pass1_file << "Relative_joint_placement_rotation: " << std::endl;
       pass1_file << data.liMi[i].rotation() << std::endl;
       pass1_file << "Relative_joint_placement_translation: " << std::endl;
@@ -253,11 +257,32 @@ namespace pinocchioPass
       // jdata.U() = Joint space inertia matrix square root (upper triangular part) computed with a Cholesky Decomposition.
       //pass2_file << "jdata.U(): " << std::endl;
       //pass2_file << jdata.U() << std::endl;
-      // Inverse ABA
+
+
+      // I had to rewrite calc_aba as I need to change some types
+      /*
       auto old_buf = std::cout.rdbuf();
       std::cout.rdbuf(pass2_file.rdbuf());
       jmodel.calc_aba(jdata.derived(), Ia, parent > 0);
       std::cout.rdbuf(old_buf);
+      */
+      // I couldn't use the joint data variables directly, as their types are decided already
+      // I'll create new types for data.U, data.Dinv, data.UDinv
+      // Since I currently have no other algorithm using these, it should effect nothing.
+      // When I add pass3 for other robots, it will be a problem as pass3 uses these variables
+      // axis is always 2 for Panda arm, may change for other robots
+      int joint_axis = 2;
+      auto data_U = Ia.col(Inertia::ANGULAR + joint_axis);
+      pass2_file << "data.U = I.col(Inertia::ANGULAR + joint_axis): " << std::endl << data_U << std::endl;
+      auto data_Dinv = jdata.Dinv();
+      data_Dinv(0) = Scalar(1) / Ia(Inertia::ANGULAR + joint_axis, Inertia::ANGULAR + joint_axis);
+      pass2_file << "data.Dinv[0] = Scalar(1) / Ia(Inertia::ANGULAR + joint_axis, Inertia::ANGULAR + joint_axis): " << std::endl << data_Dinv(0) << std::endl;
+      auto data_UDinv = data_U * data_Dinv(0);
+      pass2_file << "data.UDinv = data.U * data.Dinv[0]: " << std::endl << data_UDinv << std::endl;
+      if(parent > 0){
+        Ia -= data_UDinv * data_U.transpose();
+        pass2_file << "I: " << std::endl << Ia << std::endl;
+      }
 
       //typedef typename SizeDepType<JointModel::NV>::template ColsReturn<typename Data::Matrix6x>::Type ColsBlock;
 
@@ -267,13 +292,13 @@ namespace pinocchioPass
       //forceSet::se3Action(data.oMi[i],jdata.U(),U_cols); // expressed in the world frame
 
       // Block of size (p,q), starting at (i,j) matrix.block(i,j,p,q);
-      Minv.block(jmodel.idx_v(),jmodel.idx_v(),jmodel.nv(),jmodel.nv()) = jdata.Dinv();
+      Minv.block(jmodel.idx_v(),jmodel.idx_v(),jmodel.nv(),jmodel.nv()) = data_Dinv;
       //pass2_file << "U_cols: \n" << U_cols << std::endl;
       // idx_v is jmodel.id - 1
       //pass2_file << "idx_v: \n" << jmodel.idx_v() << std::endl;
       // nv is always 1, don'w know what it represents
       //pass2_file << "nv: \n" << jmodel.nv() << std::endl;
-      pass2_file << "jdata.Dinv()_Minv_element: \n" << jdata.Dinv() << std::endl;
+      pass2_file << "jdata.Dinv()_Minv_element: \n" << data_Dinv << std::endl;
       const int nv_children = data.nvSubtree[i] - jmodel.nv();
       // joint_id: 1 -> nvSubtree[i]: 6
       // joint_id: 2 -> nvSubtree[i]: 5 ...

@@ -53,5 +53,3 @@ python3 scripts/experiment_summary_plot.py # produces ratio values, plots, ratio
 
 ### Pointers
 Start by reading [trajectory_tracking.cc](src/trajectory_tracking.cc) and [config.hpp](include/config.hpp). They contain the crucial parts, configs, and the main function.
-
-Just continue looking for Ia and Dinv for sign changes!

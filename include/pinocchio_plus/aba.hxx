@@ -10,6 +10,15 @@
 #include "pinocchio/algorithm/check.hpp"
 #include "config.hpp"
 
+typedef FixedPoint<1, 8> FixedPoint1;
+typedef FixedPoint<2, 8> FixedPoint2;
+typedef FixedPoint<3, 8> FixedPoint3;
+typedef FixedPoint<4, 8> FixedPoint4;
+typedef FixedPoint<5, 8> FixedPoint5;
+typedef FixedPoint<6, 8> FixedPoint6;
+typedef FixedPoint<7, 8> FixedPoint7;
+typedef FixedPoint<8, 8> FixedPoint8;
+
 #define PRINT_MATRIX(x, of) for(int i = 0; i < x.rows(); i++) { for(int j = 0; j < x.cols(); j++) { of << std::setprecision(4) << x(i, j) << " "; } of << std::endl; }
 
 // bad, very bad :(
@@ -182,38 +191,46 @@ namespace pinocchioPass
       //jmodel.calc(jdata.derived(),q.derived());
       // I decided to move the jmodel.calc function to here, for the same purposes as calc_aba
       const Scalar & qj = q[jmodel.idx_q()];
-      /* Pain :(
-      pass1_file << "qj: " << std::endl << qj << std::endl;
-      FixedPoint<16, 16> qj_cast = FixedPoint<16, 16>(qj);
-      pass1_file << "qj_cast: " << std::endl << qj_cast << std::endl;
-      FixedPoint<1, 8> cos = qj_cast.cos().cast<1, 8>();
-      FixedPoint<1, 8> sin = qj_cast.sin().cast<1, 8>();
-      pass1_file << "Sine: " << std::endl << sin << std::endl;
-      pass1_file << "Cosine: " << std::endl << cos << std::endl;
-      */
-      Scalar sin, cos;
-      SINCOS(qj, &sin, &cos);
+
+      FixedPoint<1, 8> sin, cos;
+      SINCOS(qj, &sin, &cos); // For now sincos is calculated with doubles
+      // Please see: Fixed-Point Trigonometric Functions on FPGAs
+      
       //jdata.derived().M.setValues(sa,ca);
       // axis is always 2, may change for other robots
-      auto jdata_M = TransformRevoluteTpl<Scalar,Options, 2>(sin, cos);
+      //auto jdata_M = TransformRevoluteTpl<FixedPoint1, Options, 2>(sin.cast<FixedPoint1>(), cos.cast<FixedPoint1>());
+      auto jdata_M = TransformRevoluteTpl<Scalar, Options, 2>(sin.cast<Scalar>(), cos.cast<Scalar>());
 
       // calculate the vector of relative joint placements (w.r.t. the body parent)
       const JointIndex & parent = model.parents[i];
-      data.liMi[i] = model.jointPlacements[i] * jdata_M;
+
+      //data.liMi[i] = model.jointPlacements[i] * jdata_M;
+      SE3Tpl<FixedPoint2, Options> model_jointPlacements_i_cast = SE3Tpl<FixedPoint2, Options>(model.jointPlacements[i].rotation().template cast<FixedPoint2>(), model.jointPlacements[i].translation().template cast<FixedPoint2>());
+      auto jdata_M_cast = TransformRevoluteTpl<FixedPoint2, Options, 2>(sin.cast<FixedPoint2>(), cos.cast<FixedPoint2>());
+      auto data_liMi_i_cast = model_jointPlacements_i_cast * jdata_M_cast;
+      
       pass1_file << "Relative_joint_placement_rotation: " << std::endl;
-      pass1_file << data.liMi[i].rotation() << std::endl;
+      pass1_file << data_liMi_i_cast.rotation() << std::endl;
       pass1_file << "Relative_joint_placement_translation: " << std::endl;
-      pass1_file << data.liMi[i].translation() << std::endl;
+      pass1_file << data_liMi_i_cast.translation() << std::endl;
+
+      data.liMi[i] = data_liMi_i_cast.template cast<Scalar>();
+
+      // make data.oMi[i] FixedPoint2
+      auto data_oMi_i_cast = data_liMi_i_cast.template cast<FixedPoint2>();
+      auto data_oMi_parent_cast = data.oMi[parent].template cast<FixedPoint2>();
 
       // calculate the absolute joint placements
       if (parent>0)
-        data.oMi[i] = data.oMi[parent] * data.liMi[i];
+        data_oMi_i_cast = data_oMi_parent_cast * data_liMi_i_cast;
       else
-        data.oMi[i] = data.liMi[i];
+        data_oMi_i_cast = data_liMi_i_cast;
       pass1_file << "Absolute_joint_placement_rotation: " << std::endl;
-      pass1_file << data.oMi[i].rotation() << std::endl;
+      pass1_file << data_oMi_i_cast.rotation() << std::endl;
       pass1_file << "Absolute_joint_placement_translation: " << std::endl;
-      pass1_file << data.oMi[i].translation() << std::endl;
+      pass1_file << data_oMi_i_cast.translation() << std::endl;
+
+      data.oMi[i] = data_oMi_i_cast.template cast<Scalar>();
 
       // Inertia matrix of the "subtree" expressed as dense matrix
       // I currently don't know where the inertias are calculated, but I know it is pretty easy to calculate them
@@ -254,6 +271,7 @@ namespace pinocchioPass
       pass2_file << "Joint: " << i << std::endl;
       const JointIndex & parent  = model.parents[i];
 
+      // I guess 4 bits are enough for Ia
       typename Inertia::Matrix6 & Ia = data.Yaba[i];
       typename Data::RowMatrixXs & Minv = data.Minv;
 
@@ -264,18 +282,20 @@ namespace pinocchioPass
       // When I add pass3 for other robots, it will be a problem as pass3 uses these variables
       // axis is always 2 for Panda arm, may change for other robots
       int joint_axis = 2;
+      // FixedPoint2 is enough for data_U
       auto data_U = Ia.col(Inertia::ANGULAR + joint_axis);
       pass2_file << "data.U = I.col(Inertia::ANGULAR + joint_axis): " << std::endl << data_U << std::endl;
-      auto data_Dinv = jdata.Dinv();
+      auto data_Dinv = jdata.Dinv(); // jdata.Dinv() is always full of zeros for Panda arm
+      // FixedPoint7 is needed for this element
       data_Dinv(0) = Scalar(1) / Ia(Inertia::ANGULAR + joint_axis, Inertia::ANGULAR + joint_axis);
       pass2_file << "data.Dinv[0] = Scalar(1) / Ia(Inertia::ANGULAR + joint_axis, Inertia::ANGULAR + joint_axis): " << std::endl << data_Dinv(0) << std::endl;
+      // FixedPoint4 is needed for UDinv
       auto data_UDinv = data_U * data_Dinv(0);
       pass2_file << "data.UDinv = data.U * data.Dinv[0]: " << std::endl << data_UDinv << std::endl;
       if(parent > 0){
         Ia -= data_UDinv * data_U.transpose();
         pass2_file << "I: " << std::endl << Ia << std::endl;
       }
-
 
       // Block of size (p,q), starting at (i,j) matrix.block(i,j,p,q);
       Minv.block(jmodel.idx_v(),jmodel.idx_v(),jmodel.nv(),jmodel.nv()) = data_Dinv;

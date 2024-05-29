@@ -124,10 +124,13 @@ def read_aba_info():
                 experiment_info[folder_index]['original_data_Minv_output'] = original_data
         except: # I did not write to fixed_point_data.txt and original_data.txt, so we can safely do without it
             pass 
-        # read the pass1.txt
-        read_pass1_info(folder, folder_index)
-        # read the pass2.txt
-        read_pass2_info(folder, folder_index)
+        try:
+            # read the pass1.txt
+            read_pass1_info(folder, folder_index)
+            # read the pass2.txt
+            read_pass2_info(folder, folder_index)
+        except:
+            break
         try:
             # read the pass3.txt
             read_pass3_info(folder, folder_index)

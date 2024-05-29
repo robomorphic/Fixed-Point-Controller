@@ -24,4 +24,9 @@ experiment_data_old/*
 experiment_data_backup/*
 experiment_summaries/*
 fig_backup/*
+experiment_means/*
+experiment_plots/*
+experiment_plots_old/*
+experiment_ranges/*
+experiment_ratios/*
 

@@ -5,8 +5,8 @@
 #include <FixedPoint/fixed_point.hpp> // for OverflowMode
 
 std::string EXPERIMENT_DIRECTORY = "exp/05-16/";
-const int INT_BITS_STANDARD = 31;
-const int FRAC_BITS_STANDARD = 31;
+const int INT_BITS_STANDARD = 8;
+const int FRAC_BITS_STANDARD = 8;
 
 const int INT_BITS_GRAVITY = 16;
 const int FRAC_BITS_GRAVITY = 16;

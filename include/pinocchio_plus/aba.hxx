@@ -10,52 +10,10 @@
 #include "pinocchio/algorithm/check.hpp"
 #include "config.hpp"
 
-typedef FixedPoint<1, 8> FixedPoint1;
-typedef FixedPoint<2, 8> FixedPoint2;
-typedef FixedPoint<3, 8> FixedPoint3;
-typedef FixedPoint<4, 8> FixedPoint4;
-typedef FixedPoint<5, 8> FixedPoint5;
-typedef FixedPoint<6, 8> FixedPoint6;
-typedef FixedPoint<7, 8> FixedPoint7;
-typedef FixedPoint<8, 8> FixedPoint8;
-
 #define PRINT_MATRIX(x, of) for(int i = 0; i < x.rows(); i++) { for(int j = 0; j < x.cols(); j++) { of << std::setprecision(4) << x(i, j) << " "; } of << std::endl; }
 
 // bad, very bad :(
 using namespace pinocchio;
-
-// https://stackoverflow.com/a/28050328/13399661
-template<typename T>
-inline T cos_fast(T x) noexcept
-{
-    std::cout << "input x is " << x << std::endl;
-    T tp = 1./(2.*M_PI);
-    std::cout << "tp is " << tp << std::endl;
-    x *= tp;
-    std::cout << "x is " << x << std::endl;
-    x -= T(.25) + std::floor(x + T(.25));
-    std::cout << "x is " << x << std::endl;
-    x *= T(16.) * (std::abs(x) - T(.5));
-    std::cout << "x is " << x << std::endl;
-    x += T(.225) * x * (std::abs(x) - T(1.));
-    std::cout << "x is " << x << std::endl;
-    return x;
-}
-
-template <typename T>
-T sin_fast(T x) noexcept
-{
-    const T B = 4/M_PI;
-    const T C = -4/(M_PI*M_PI);
-
-    T y = B * x + C * x * std::abs(x);
-    //  const float Q = 0.775;
-        const float P = 0.225;
-
-        y = P * (y * abs(y) - y) + y;   // Q * y + P * y * abs(y)
-    return y;
-}
-
 
 
 namespace internalVerbose
@@ -188,9 +146,20 @@ namespace pinocchioPass
       pass1_file << "model.inertia_matrix: " << std::endl;
       pass1_file << model.inertias[i].matrix() << std::endl;
 
+      pass1_file << "model.inertia_matrix_mass: " << std::endl;
+      pass1_file << model.inertias[i].mass() << std::endl;
+
+      pass1_file << "model.inertia_matrix_lever: " << std::endl;
+      pass1_file << model.inertias[i].lever() << std::endl;
+
+      pass1_file << "model.inertia_matrix_inertia: " << std::endl;
+      pass1_file << model.inertias[i].inertia() << std::endl;
+
       //jmodel.calc(jdata.derived(),q.derived());
       // I decided to move the jmodel.calc function to here, for the same purposes as calc_aba
       const Scalar & qj = q[jmodel.idx_q()];
+
+      pass1_file << "qj: " << std::endl << qj << std::endl;
 
       FixedPoint<1, 8> sin, cos;
       SINCOS(qj, &sin, &cos); // For now sincos is calculated with doubles
@@ -199,16 +168,25 @@ namespace pinocchioPass
       //jdata.derived().M.setValues(sa,ca);
       // axis is always 2, may change for other robots
       //auto jdata_M = TransformRevoluteTpl<FixedPoint1, Options, 2>(sin.cast<FixedPoint1>(), cos.cast<FixedPoint1>());
+      pass1_file << "jdata_m_sin: " << std::endl << sin << std::endl;
+      pass1_file << "jdata_m_cos: " << std::endl << cos << std::endl;
       auto jdata_M = TransformRevoluteTpl<Scalar, Options, 2>(sin.cast<Scalar>(), cos.cast<Scalar>());
-
+      
       // calculate the vector of relative joint placements (w.r.t. the body parent)
       const JointIndex & parent = model.parents[i];
 
       //data.liMi[i] = model.jointPlacements[i] * jdata_M;
       SE3Tpl<FixedPoint2, Options> model_jointPlacements_i_cast = SE3Tpl<FixedPoint2, Options>(model.jointPlacements[i].rotation().template cast<FixedPoint2>(), model.jointPlacements[i].translation().template cast<FixedPoint2>());
+      pass1_file << "model_jointPlacements_i_rotation: " << std::endl;
+      pass1_file << model_jointPlacements_i_cast.rotation() << std::endl;
+
+      pass1_file << "model_jointPlacements_i_translation: " << std::endl;
+      pass1_file << model.jointPlacements[i].translation() << std::endl;
       auto jdata_M_cast = TransformRevoluteTpl<FixedPoint2, Options, 2>(sin.cast<FixedPoint2>(), cos.cast<FixedPoint2>());
       auto data_liMi_i_cast = model_jointPlacements_i_cast * jdata_M_cast;
-      
+      pass1_file << "data_liMi_i_cast: " << std::endl;
+      pass1_file << data_liMi_i_cast.rotation() << std::endl;
+
       pass1_file << "Relative_joint_placement_rotation: " << std::endl;
       pass1_file << data_liMi_i_cast.rotation() << std::endl;
       pass1_file << "Relative_joint_placement_translation: " << std::endl;

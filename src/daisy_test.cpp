@@ -12,80 +12,71 @@ using ap_fixed = FixedPoint<INT_BITS, (TOTAL_BITS - INT_BITS)>;
 
 /* @pre: ((m > 0.0) && (m < 5.0) && (x_lever > -0.12) && (y_lever > -0.12) && (z_lever > -0.12) && (x_lever < 0.18) && (y_lever < 0.18) && (z_lever < 0.18) && (joint_inertia_1 > -0.03) && (joint_inertia_2 > -0.03) && (joint_inertia_3 > -0.03) && (joint_inertia_4 > -0.03) && (joint_inertia_5 > -0.03) && (joint_inertia_6 > -0.03) && (joint_inertia_1 < 1.2) && (joint_inertia_2 < 1.2) && (joint_inertia_3 < 1.2) && (joint_inertia_4 < 1.2) && (joint_inertia_5 < 1.2) && (joint_inertia_6 < 1.2)) */
 /* @post: (res) => (res +/- 0.01) */
-ap_fixed<32,9> first_pass_inertia(ap_fixed<32,9> m, ap_fixed<32,9> x_lever, ap_fixed<32,9> y_lever, ap_fixed<32,9> z_lever, ap_fixed<32,9> joint_inertia_1, ap_fixed<32,9> joint_inertia_2, ap_fixed<32,9> joint_inertia_3, ap_fixed<32,9> joint_inertia_4, ap_fixed<32,9> joint_inertia_5, ap_fixed<32,9> joint_inertia_6) {
-  ap_fixed<32,9> fi_1_1 = m;
-  ap_fixed<32,9> fi_2_2 = m;
-  ap_fixed<32,9> fi_3_3 = m;
-  ap_fixed<32,9> se_1_2 = (z_lever * m);
-  ap_fixed<32,9> _tmp = -(m);
-  ap_fixed<32,9> se_1_3 = (_tmp * y_lever);
-  ap_fixed<32,9> se_2_1 = -(se_1_2);
-  ap_fixed<32,9> se_2_3 = (m * x_lever);
-  ap_fixed<32,9> se_3_1 = -(se_1_3);
-  ap_fixed<32,9> se_3_2 = -(se_2_3);
-  ap_fixed<32,9> th_1_2 = -(se_1_2);
-  ap_fixed<32,9> th_1_3 = -(se_1_3);
-  ap_fixed<32,9> th_2_1 = -(se_2_1);
-  ap_fixed<32,9> th_2_3 = -(se_2_3);
-  ap_fixed<32,9> th_3_1 = -(se_3_1);
-  ap_fixed<32,9> th_3_2 = -(se_3_2);
-  ap_fixed<32,9> _tmp1 = (y_lever * y_lever);
-  ap_fixed<32,9> _tmp2 = (z_lever * z_lever);
-  ap_fixed<32,9> _tmp3 = (_tmp1 + _tmp2);
-  ap_fixed<32,9> _tmp4 = (m * _tmp3);
-  ap_fixed<32,9> fo_1_1 = (joint_inertia_1 + _tmp4);
-  ap_fixed<32,9> _tmp5 = (m * x_lever);
-  ap_fixed<32,9> _tmp6 = (y_lever * _tmp5);
-  ap_fixed<32,9> fo_1_2 = (joint_inertia_2 - _tmp6);
-  ap_fixed<32,9> _tmp7 = (x_lever * x_lever);
-  ap_fixed<32,9> _tmp8 = (z_lever * z_lever);
-  ap_fixed<32,9> _tmp9 = (_tmp7 + _tmp8);
-  ap_fixed<32,9> _tmp10 = (m * _tmp9);
-  ap_fixed<32,9> fo_1_3 = (joint_inertia_4 - _tmp10);
-  ap_fixed<32,9> fo_2_1 = fo_1_2;
-  ap_fixed<32,9> _tmp11 = (m * x_lever);
-  ap_fixed<32,9> _tmp12 = (_tmp11 * z_lever);
-  ap_fixed<32,9> fo_2_2 = (_tmp12 + joint_inertia_3);
-  ap_fixed<32,9> _tmp13 = (m * y_lever);
-  ap_fixed<32,9> _tmp14 = (_tmp13 * z_lever);
-  ap_fixed<32,9> fo_2_3 = (joint_inertia_5 - _tmp14);
-  ap_fixed<32,9> fo_3_1 = fo_1_3;
-  ap_fixed<32,9> fo_3_2 = fo_2_3;
-  ap_fixed<32,9> _tmp15 = (y_lever * y_lever);
-  ap_fixed<32,9> _tmp16 = (x_lever * x_lever);
-  ap_fixed<32,9> _tmp17 = (_tmp15 + _tmp16);
-  ap_fixed<32,9> _tmp18 = (m * _tmp17);
-  ap_fixed<32,9> fo_3_3 = (joint_inertia_6 + _tmp18);
-  ap_fixed<32,9> _tmp19 = (fi_1_1 + fi_2_2);
-  ap_fixed<32,9> _tmp20 = (_tmp19 + fi_3_3);
-  ap_fixed<32,9> _tmp23 = (_tmp20 + se_1_2);
-  ap_fixed<32,9> _tmp21 = (se_2_3 + se_3_1);
-  ap_fixed<32,9> _tmp22 = (se_2_1 + _tmp21);
-  ap_fixed<32,9> _tmp24 = (se_1_3 + _tmp22);
-  ap_fixed<32,9> _tmp25 = (_tmp23 + _tmp24);
-  ap_fixed<32,9> _tmp26 = (se_3_2 + _tmp25);
-  ap_fixed<32,9> _tmp27 = (_tmp26 + th_1_2);
-  ap_fixed<32,9> _tmp28 = (th_1_3 + th_2_1);
-  ap_fixed<32,9> _tmp39 = (_tmp27 + _tmp28);
-  ap_fixed<32,9> _tmp29 = (th_2_3 + th_3_1);
-  ap_fixed<32,9> _tmp30 = (th_3_2 + fo_1_1);
-  ap_fixed<32,9> _tmp37 = (_tmp29 + _tmp30);
-  ap_fixed<32,9> _tmp31 = (fo_1_3 + fo_2_1);
-  ap_fixed<32,9> _tmp34 = (_tmp31 + fo_2_2);
-  ap_fixed<32,9> _tmp32 = (fo_2_3 + fo_3_1);
-  ap_fixed<32,9> _tmp33 = (fo_3_3 + fo_3_2);
-  ap_fixed<32,9> _tmp35 = (_tmp32 + _tmp33);
-  ap_fixed<32,9> _tmp36 = (_tmp34 + _tmp35);
-  ap_fixed<32,9> _tmp38 = (_tmp36 + fo_1_2);
-  ap_fixed<32,9> _tmp40 = (_tmp37 + _tmp38);
+ap_fixed<32,9> firstPass(ap_fixed<32,9> model_joint_p_rotation_1_1_1, ap_fixed<32,9> model_joint_p_rotation_1_1_2, ap_fixed<32,9> model_joint_p_rotation_1_1_3, ap_fixed<32,9> model_joint_p_rotation_1_2_1, ap_fixed<32,9> model_joint_p_rotation_1_2_2, ap_fixed<32,9> model_joint_p_rotation_1_2_3, ap_fixed<32,9> model_joint_p_rotation_1_3_1, ap_fixed<32,9> model_joint_p_rotation_1_3_2, ap_fixed<32,9> model_joint_p_rotation_1_3_3, ap_fixed<32,9> model_joint_p_translation_1_1, ap_fixed<32,9> model_joint_p_translation_1_2, ap_fixed<32,9> model_joint_p_translation_1_3, ap_fixed<32,9> qpos1) {
+  ap_fixed<32,9> sin_qpos1 = sin(qpos1);
+  ap_fixed<32,9> cos_qpos1 = cos(qpos1);
+  ap_fixed<32,9> rotation_matrix_1_1_1 = cos_qpos1;
+  ap_fixed<32,9> rotation_matrix_1_1_2 = sin_qpos1;
+  ap_fixed<32,9> rotation_matrix_1_2_1 = -(sin_qpos1);
+  ap_fixed<32,9> rotation_matrix_1_2_2 = cos_qpos1;
+  ap_fixed<32,9> _tmp = (model_joint_p_rotation_1_1_2 * rotation_matrix_1_2_1);
+  ap_fixed<32,9> _tmp1 = (model_joint_p_rotation_1_1_1 * rotation_matrix_1_1_1);
+  ap_fixed<32,9> limi_rotation_1_1_1 = (_tmp + _tmp1);
+  ap_fixed<32,9> _tmp2 = (model_joint_p_rotation_1_1_2 * rotation_matrix_1_2_2);
+  ap_fixed<32,9> _tmp3 = (model_joint_p_rotation_1_1_1 * rotation_matrix_1_1_2);
+  ap_fixed<32,9> limi_rotation_1_1_2 = (_tmp2 + _tmp3);
+  ap_fixed<32,9> limi_rotation_1_1_3 = model_joint_p_rotation_1_1_3;
+  ap_fixed<32,9> _tmp4 = (rotation_matrix_1_1_1 * model_joint_p_rotation_1_2_1);
+  ap_fixed<32,9> _tmp5 = (model_joint_p_rotation_1_2_2 * rotation_matrix_1_2_1);
+  ap_fixed<32,9> limi_rotation_1_2_1 = (_tmp4 + _tmp5);
+  ap_fixed<32,9> _tmp6 = (model_joint_p_rotation_1_2_1 * rotation_matrix_1_1_2);
+  ap_fixed<32,9> _tmp7 = (rotation_matrix_1_2_2 * model_joint_p_rotation_1_2_2);
+  ap_fixed<32,9> limi_rotation_1_2_2 = (_tmp6 + _tmp7);
+  ap_fixed<32,9> limi_rotation_1_2_3 = model_joint_p_rotation_1_2_3;
+  ap_fixed<32,9> _tmp8 = (rotation_matrix_1_1_1 * model_joint_p_rotation_1_3_1);
+  ap_fixed<32,9> _tmp9 = (rotation_matrix_1_2_1 * model_joint_p_rotation_1_3_2);
+  ap_fixed<32,9> limi_rotation_1_3_1 = (_tmp8 + _tmp9);
+  ap_fixed<32,9> _tmp10 = (rotation_matrix_1_2_2 * model_joint_p_rotation_1_3_2);
+  ap_fixed<32,9> _tmp11 = (model_joint_p_rotation_1_3_1 * rotation_matrix_1_1_2);
+  ap_fixed<32,9> limi_rotation_1_3_2 = (_tmp10 + _tmp11);
+  ap_fixed<32,9> limi_rotation_1_3_3 = model_joint_p_rotation_1_3_3;
+  ap_fixed<32,9> limi_translation_1_1 = model_joint_p_translation_1_1;
+  ap_fixed<32,9> limi_translation_1_2 = model_joint_p_translation_1_2;
+  ap_fixed<32,9> limi_translation_1_3 = model_joint_p_translation_1_3;
+  ap_fixed<32,9> oMi_rotation_1_1_1 = limi_rotation_1_1_1;
+  ap_fixed<32,9> oMi_rotation_1_1_2 = limi_rotation_1_1_2;
+  ap_fixed<32,9> oMi_rotation_1_1_3 = limi_rotation_1_1_3;
+  ap_fixed<32,9> oMi_rotation_1_2_1 = limi_rotation_1_2_1;
+  ap_fixed<32,9> oMi_rotation_1_2_2 = limi_rotation_1_2_2;
+  ap_fixed<32,9> oMi_rotation_1_2_3 = limi_rotation_1_2_3;
+  ap_fixed<32,9> oMi_rotation_1_3_1 = limi_rotation_1_3_1;
+  ap_fixed<32,9> oMi_rotation_1_3_2 = limi_rotation_1_3_2;
+  ap_fixed<32,9> oMi_rotation_1_3_3 = limi_rotation_1_3_3;
+  ap_fixed<32,9> oMi_translation_1_1 = limi_translation_1_1;
+  ap_fixed<32,9> oMi_translation_1_2 = limi_translation_1_2;
+  ap_fixed<32,9> oMi_translation_1_3 = limi_translation_1_3;
+  ap_fixed<32,9> _tmp12 = (oMi_rotation_1_1_2 + oMi_rotation_1_1_3);
+  ap_fixed<32,9> _tmp13 = (oMi_rotation_1_1_1 + _tmp12);
+  ap_fixed<32,9> _tmp15 = (_tmp13 + oMi_rotation_1_2_1);
+  ap_fixed<32,9> _tmp14 = (oMi_rotation_1_2_3 + oMi_rotation_1_3_1);
+  ap_fixed<32,9> _tmp16 = (oMi_rotation_1_2_2 + _tmp14);
+  ap_fixed<32,9> _tmp20 = (_tmp15 + _tmp16);
+  ap_fixed<32,9> _tmp18 = (oMi_rotation_1_3_2 + oMi_rotation_1_3_3);
+  ap_fixed<32,9> _tmp17 = (oMi_translation_1_1 + oMi_translation_1_2);
+  ap_fixed<32,9> _tmp19 = (_tmp17 + oMi_translation_1_3);
+  ap_fixed<32,9> _tmp21 = (_tmp18 + _tmp19);
 
-    std::cout << fi_1_1 << " " << 0 << " " << 0 << " " << 0 << " " << se_1_2 << " " << se_1_3 << std::endl;
-    std::cout << 0 << " " << fi_2_2 << " " << 0 << " " << se_2_1 << " " << 0 << " " << se_2_3 << std::endl;
-    std::cout << 0 << " " << 0 << " " << fi_3_3 << " " << se_3_1 << " " << se_3_2 << " " << 0 << std::endl;
-    std::cout << 0 << " " << th_1_2 << " " << th_1_3 << " " << fo_1_1 << " " << fo_1_2 << " " << fo_1_3 << std::endl;
-    std::cout << th_2_1 << " " << 0 << " " << th_2_3 << " " << fo_2_1 << " " << fo_2_2 << " " << fo_2_3 << std::endl;
-    std::cout << th_3_1 << " " << th_3_2 << " " << 0 << " " << fo_3_1 << " " << fo_3_2 << " " << fo_3_3 << std::endl;
-  return (_tmp39 + _tmp40);
+    //std::cout << fi_1_1 << " " << 0 << " " << 0 << " " << 0 << " " << se_1_2 << " " << se_1_3 << std::endl;
+    //std::cout << 0 << " " << fi_2_2 << " " << 0 << " " << se_2_1 << " " << 0 << " " << se_2_3 << std::endl;
+    //std::cout << 0 << " " << 0 << " " << fi_3_3 << " " << se_3_1 << " " << se_3_2 << " " << 0 << std::endl;
+    //std::cout << 0 << " " << th_1_2 << " " << th_1_3 << " " << fo_1_1 << " " << fo_1_2 << " " << fo_1_3 << std::endl;
+    //std::cout << th_2_1 << " " << 0 << " " << th_2_3 << " " << fo_2_1 << " " << fo_2_2 << " " << fo_2_3 << std::endl;
+    //std::cout << th_3_1 << " " << th_3_2 << " " << 0 << " " << fo_3_1 << " " << fo_3_2 << " " << fo_3_3 << std::endl;
+    std::cout << oMi_rotation_1_1_1 << " " << oMi_rotation_1_1_2 << " " << oMi_rotation_1_1_3 << std::endl;
+    std::cout << oMi_rotation_1_2_1 << " " << oMi_rotation_1_2_2 << " " << oMi_rotation_1_2_3 << std::endl;
+    std::cout << oMi_rotation_1_3_1 << " " << oMi_rotation_1_3_2 << " " << oMi_rotation_1_3_3 << std::endl;
+    std::cout << oMi_translation_1_1 << " " << oMi_translation_1_2 << " " << oMi_translation_1_3 << std::endl;
+  return (_tmp20 + _tmp21);
 } // [-0.27285183519401485, 28.50581702579514] +/- 0.009724890703458186
 
 #include <stdio.h>
@@ -93,19 +84,30 @@ ap_fixed<32,9> first_pass_inertia(ap_fixed<32,9> m, ap_fixed<32,9> x_lever, ap_f
 #include <stdlib.h>
 
 int main(int argc, char* argv[]){
-    first_pass_inertia(
-        ap_fixed<32,9>(4.97068),
+    // JOINT 1
+    //"joint_rotation": "1.000 0.000 0.000\n0.000 1.000 0.000\n0.000 0.000 1.000\n"
+    //"joint_translation": "0.000\n0.000\n0.333\n"
+    //"qpos": "-2.8973\n"
+    firstPass(
+        // rotation joint 1
+        ap_fixed<32,9>(1.0),
+        ap_fixed<32,9>(0.0),
+        ap_fixed<32,9>(0.0),
+        ap_fixed<32,9>(0.0),
+        ap_fixed<32,9>(1.0),
+        ap_fixed<32,9>(0.0),
+        ap_fixed<32,9>(0.0),
+        ap_fixed<32,9>(0.0),
+        ap_fixed<32,9>(1.0),
 
-        ap_fixed<32,9>(0.003875),
-        ap_fixed<32,9>(0.002081),
-        ap_fixed<32,9>(-0.04762),
-        
-        ap_fixed<32,9>(0.70337),
-        ap_fixed<32,9>(-0.000139),
-        ap_fixed<32,9>(0.70661),
-        ap_fixed<32,9>(0.006772),
-        ap_fixed<32,9>(0.019169),
-        ap_fixed<32,9>(0.009117)
+        // translation joint 1
+        ap_fixed<32,9>(0.0),
+        ap_fixed<32,9>(0.0),
+        ap_fixed<32,9>(0.333),
+    
+        // qpos joint 1
+        ap_fixed<32,9>(-2.8973)
+
     );
 
     /*

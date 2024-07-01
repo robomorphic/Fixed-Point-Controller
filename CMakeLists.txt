@@ -82,7 +82,7 @@ pkg_check_modules(pinocchio REQUIRED pinocchio)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE) # system installation
 
 
-find_package(Boost 1.84.0 REQUIRED)
+find_package(Boost)
 find_package(osqp)
 
 add_executable(trajectory_tracking include/pinocchio_plus/aba.hxx src/trajectory_tracking.cc)

@@ -5,8 +5,6 @@ set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 # Default to GLVND if available.
 set(CMAKE_POLICY_DEFAULT_CMP0072 NEW)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++fs -std=c++17")
-
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -ferror-limit=10000")
 
 # This line has to appear before 'PROJECT' in order to be able to disable incremental linking

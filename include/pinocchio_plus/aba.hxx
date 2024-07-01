@@ -162,8 +162,8 @@ namespace pinocchioPass
       pass1_file << "model.inertia_matrix_lever: " << std::endl;
       pass1_file << model.inertias[i].lever() << std::endl;
 
-      pass1_file << "model.inertia_matrix_inertia: " << std::endl;
-      pass1_file << model.inertias[i].inertia() << std::endl;
+      //pass1_file << "model.inertia_matrix_inertia: " << std::endl;
+      //pass1_file << model.inertias[i].inertia() << std::endl;
 
       //jmodel.calc(jdata.derived(),q.derived());
       // I decided to move the jmodel.calc function to here, for the same purposes as calc_aba

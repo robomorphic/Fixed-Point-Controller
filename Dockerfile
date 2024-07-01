@@ -15,7 +15,8 @@ RUN apt install -y \
     lsb-release \
     curl \
     gnupg2 \
-    python2
+    python2 \
+    clang
 
 RUN sh -c "echo 'deb [arch=amd64] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg' >> /etc/apt/sources.list.d/robotpkg.list"
 RUN curl http://robotpkg.openrobots.org/packages/debian/robotpkg.key | apt-key add -
@@ -57,7 +58,7 @@ RUN git clone https://github.com/alpylmz/mujoco_simulation
 # Install fixedpoint library
 RUN cd mujoco_simulation/include; git clone https://github.com/alpylmz/FixedPoint
 RUN git clone https://github.com/alpylmz/mujoco_menagerie
-RUN cd mujoco_simulation; cmake .; make
+RUN cd mujoco_simulation; cmake . -DCMAKE_CXX_COMPILER=/usr/bin/clang++; make
 
 
 

@@ -12,6 +12,15 @@
 
 #define PRINT_MATRIX(x, of) for(int i = 0; i < x.rows(); i++) { for(int j = 0; j < x.cols(); j++) { of << std::setprecision(4) << x(i, j) << " "; } of << std::endl; }
 
+typedef FixedPoint<1, 8> FixedPoint1;
+typedef FixedPoint<2, 8> FixedPoint2;
+typedef FixedPoint<3, 8> FixedPoint3;
+typedef FixedPoint<4, 8> FixedPoint4;
+typedef FixedPoint<5, 8> FixedPoint5;
+typedef FixedPoint<6, 8> FixedPoint6;
+typedef FixedPoint<7, 8> FixedPoint7;
+typedef FixedPoint<8, 8> FixedPoint8;
+
 // bad, very bad :(
 using namespace pinocchio;
 
@@ -34,7 +43,7 @@ namespace internalVerbose
         typedef SE3Tpl<exp_type_act_on,Options> SE3;
         typedef typename SE3::Matrix3 Matrix3;
         typedef typename SE3::Vector3 Vector3;
-
+ 
         // new Matrix6Type which has exp_type_act_on as Scalar
         typedef typename Eigen::Matrix<exp_type_act_on,6,6,Options> Matrix6TypeActOn;
 
@@ -69,6 +78,7 @@ namespace internalVerbose
         Block3 Do = res.template block<3,3>(Inertia::ANGULAR, Inertia::ANGULAR);
 
         Do.noalias() = R*Ai; // tmp variable
+        pass2_file << "Do_Rotation_Linear: " << std::endl << Do << std::endl;
         Ao.noalias() = Do*R.transpose(); // Rotation * Linear * Rotation^T
         pass2_file << "Ao_Rotation_Linear_Rotation^T: " << std::endl << Ao << std::endl;
 
@@ -282,6 +292,8 @@ namespace pinocchioPass
       pass2_file << "jdata.Dinv()_Minv_element: \n" << data_Dinv << std::endl;
 
       if(parent > 0){
+        pass2_file << "Yaba[parent]_before: " << std::endl;
+        pass2_file << data.Yaba[parent] << std::endl;
         data.Yaba[parent] += internalVerbose::SE3actOnVerbose<Scalar>::run(data.liMi[i], Ia);
         pass2_file << "Yaba[parent]: " << std::endl;
         pass2_file << data.Yaba[parent] << std::endl;

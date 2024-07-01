@@ -2,6 +2,7 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
+#include <filesystem>
 #include <FixedPoint/fixed_point.hpp> // for OverflowMode
 
 std::string EXPERIMENT_DIRECTORY = "exp/05-16/";

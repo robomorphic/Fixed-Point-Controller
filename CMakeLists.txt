@@ -123,19 +123,19 @@ target_link_libraries(
 )
 target_include_directories(arm_uniform_data PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
-add_executable(daisy_test src/daisy_test.cpp)
-target_compile_options(daisy_test PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS} ${pinocchio_CFLAGS_OTHER})
-target_link_libraries(
-  daisy_test
-  mujoco::mujoco
-  glfw
-  Threads::Threads
-  pinocchio
-  osqp::osqp
-  ${Boost_LIBRARIES}
-  Eigen3::Eigen
-)
-target_include_directories(daisy_test PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
+# add_executable(daisy_test src/daisy_test.cpp)
+# target_compile_options(daisy_test PUBLIC ${MUJOCO_SAMPLE_COMPILE_OPTIONS} ${pinocchio_CFLAGS_OTHER})
+# target_link_libraries(
+#  daisy_test
+#  mujoco::mujoco
+#  glfw
+#  Threads::Threads
+#  pinocchio
+#  osqp::osqp
+#  ${Boost_LIBRARIES}
+#  Eigen3::Eigen
+#)
+#target_include_directories(daisy_test PUBLIC /usr/local/include ${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
 if(APPLE AND MUJOCO_BUILD_MACOS_FRAMEWORKS)
   embed_in_bundle(basic simulate)

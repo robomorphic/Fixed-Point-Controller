@@ -297,7 +297,9 @@ int main(int argc, const char** argv) {
     std::cerr << "inertia: " << pinocchio_model.inertias[5] << std::endl;
     std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[5] << std::endl;
     std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[5] << std::endl;
-    
+
+    // cast doesn't work for Ubuntu with some systems for some reason
+
 
     pinocchio_data          = pinocchio::DataTpl<exp_type>(pinocchio_model);
     //std::cerr << "pinocchio_data: " << pinocchio_data << std::endl;
@@ -305,8 +307,6 @@ int main(int argc, const char** argv) {
     //std::cerr << "pinocchio_data_gravity: " << pinocchio_data_gravity << std::endl;
     pinocchio_data_fd       = pinocchio::DataTpl<exp_type_fd>(pinocchio_model_fd);
     //std::cerr << "pinocchio_data_fd: " << pinocchio_data_fd << std::endl;
-
-    exit(25);
 
     // check command-line arguments
     if (argc!=2) {

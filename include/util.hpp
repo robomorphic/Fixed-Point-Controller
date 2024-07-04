@@ -133,6 +133,7 @@ void model_cast(
     pinocchio::ModelTpl<double> &model,
     pinocchio::ModelTpl<NewScalar> &new_model
 ) {
+    new_model = model.cast<NewScalar>();
     new_model.nq = NewScalar(model.nq);
     new_model.nv = NewScalar(model.nv);
     new_model.njoints = NewScalar(model.njoints);

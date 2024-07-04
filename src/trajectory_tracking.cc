@@ -268,10 +268,10 @@ int main(int argc, const char** argv) {
     model_cast(pinocchio_model_basic, pinocchio_model);
     std::cerr << "pinocchio_model: " << pinocchio_model << std::endl;
     //pinocchio_model_gravity = pinocchio_model_basic.cast<exp_type_gravity>();
-    model_cast(pinocchio_model_basic, pinocchio_model);
+    model_cast(pinocchio_model_basic, pinocchio_model_gravity);
     std::cerr << "pinocchio_model_gravity: " << pinocchio_model_gravity << std::endl;
     //pinocchio_model_fd      = pinocchio_model_basic.cast<exp_type_fd>();
-    model_cast(pinocchio_model_basic, pinocchio_model);
+    model_cast(pinocchio_model_basic, pinocchio_model_fd);
     std::cerr << "pinocchio_model_fd: " << pinocchio_model_fd << std::endl;
     if(PINOCCHIO_VERBOSE) print_model(pinocchio_model_basic, pinocchio_model, pinocchio_model_fd);
     //std::cout << "model name: " << pinocchio_model.name << std::endl;

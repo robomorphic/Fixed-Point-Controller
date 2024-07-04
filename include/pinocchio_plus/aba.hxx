@@ -223,6 +223,7 @@ namespace pinocchioPass
       // Inertia matrix of the "subtree" expressed as dense matrix
       // I currently don't know where the inertias are calculated, but I know it is pretty easy to calculate them
       data.Yaba[i] = model.inertias[i].matrix();
+      std::cerr << "Yaba[i]: " << std::endl << data.Yaba[i] << std::endl;
     }
 
   };

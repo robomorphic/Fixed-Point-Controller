@@ -264,14 +264,22 @@ int main(int argc, const char** argv) {
     // Therefore we are creating the robot model with double type and then casting it to exp_type
     pinocchio::urdf::buildModel(urdf_filename, pinocchio_model_basic);
     std::cerr << "pinocchio_model_basic: " << pinocchio_model_basic << std::endl;
-    pinocchio_model         = pinocchio_model_basic.cast<exp_type>();
+    //pinocchio_model         = pinocchio_model_basic.cast<exp_type>();
+    model_cast(pinocchio_model_basic, pinocchio_model);
     std::cerr << "pinocchio_model: " << pinocchio_model << std::endl;
-    pinocchio_model_gravity = pinocchio_model_basic.cast<exp_type_gravity>();
+    //pinocchio_model_gravity = pinocchio_model_basic.cast<exp_type_gravity>();
+    model_cast(pinocchio_model_basic, pinocchio_model_gravity);
     std::cerr << "pinocchio_model_gravity: " << pinocchio_model_gravity << std::endl;
-    pinocchio_model_fd      = pinocchio_model_basic.cast<exp_type_fd>();
+    //pinocchio_model_fd      = pinocchio_model_basic.cast<exp_type_fd>();
+    model_cast(pinocchio_model_basic, pinocchio_model_fd);
     std::cerr << "pinocchio_model_fd: " << pinocchio_model_fd << std::endl;
     if(PINOCCHIO_VERBOSE) print_model(pinocchio_model_basic, pinocchio_model, pinocchio_model_fd);
     //std::cout << "model name: " << pinocchio_model.name << std::endl;
+
+    // create a dummy model
+    pinocchio::ModelTpl<FixedPoint<31, 31>> dummy_model;
+    model_cast(pinocchio_model, dummy_model);
+    std::cerr << "dummy_model: " << dummy_model << std::endl;
 
     // print "inertias" of these models
     std::cerr << "inertia: " << pinocchio_model.inertias[0] << std::endl;
@@ -299,6 +307,7 @@ int main(int argc, const char** argv) {
     std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[5] << std::endl;
 
     // cast doesn't work for Ubuntu with some systems for some reason
+    exit(5);
 
 
     pinocchio_data          = pinocchio::DataTpl<exp_type>(pinocchio_model);

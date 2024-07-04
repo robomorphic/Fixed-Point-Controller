@@ -128,4 +128,103 @@ void print_model(
     print_model_helper(smaller_model, model_smaller_file);
 }
 
+template <typename NewScalar>
+void model_cast(
+    pinocchio::ModelTpl<double> &model,
+    pinocchio::ModelTpl<NewScalar> &new_model
+) {
+    new_model.nq = NewScalar(model.nq);
+    new_model.nv = NewScalar(model.nv);
+    new_model.njoints = NewScalar(model.njoints);
+    new_model.nbodies = NewScalar(model.nbodies);
+    new_model.nframes = NewScalar(model.nframes);
+    // clear parents, names, supports, subtrees
+    new_model.parents.clear();
+    new_model.names.clear();
+    new_model.supports.clear();
+    new_model.subtrees.clear();
+    for(int i = 0; i < model.parents.size(); i++) {
+        new_model.parents.push_back(model.parents[i]);
+    }
+    for(int i = 0; i < model.names.size(); i++) {
+        new_model.names.push_back(model.names[i]);
+    }
+    for(int i = 0; i < model.supports.size(); i++) {
+        new_model.supports.push_back(model.supports[i]);
+    }
+    for(int i = 0; i < model.subtrees.size(); i++) {
+        new_model.subtrees.push_back(model.subtrees[i]);
+    }
+    new_model.gravity = model.gravity.template cast<NewScalar>();
+    new_model.name = model.name;
+
+    // clear these vectors
+    new_model.idx_qs.clear();
+    new_model.nqs.clear();
+    new_model.idx_vs.clear();
+    new_model.nvs.clear();
+    for(int i = 0; i < model.idx_qs.size(); i++) {
+        new_model.idx_qs.push_back(NewScalar(model.idx_qs[i]));
+    }
+    for(int i = 0; i < model.nqs.size(); i++) {
+        new_model.nqs.push_back(NewScalar(model.nqs[i]));
+    }
+    for(int i = 0; i < model.idx_vs.size(); i++) {
+        new_model.idx_vs.push_back(NewScalar(model.idx_vs[i]));
+    }
+    for(int i = 0; i < model.nvs.size(); i++) {
+        new_model.nvs.push_back(NewScalar(model.nvs[i]));
+    }
+
+    // clear vectors
+    std::cerr << "BE CAREFUL, in some systems casting may give wrong results" << std::endl;
+    std::cerr << "gravity: " << model.gravity << std::endl;
+    std::cerr << "new gravity: " << new_model.gravity << std::endl;
+
+    // Eigen Vectors
+    new_model.rotorInertia          = model.rotorInertia.template cast<NewScalar>();
+    new_model.rotorGearRatio        = model.rotorGearRatio.template cast<NewScalar>();
+    new_model.friction              = model.friction.template cast<NewScalar>();
+    new_model.damping               = model.damping.template cast<NewScalar>();
+    new_model.effortLimit           = model.effortLimit.template cast<NewScalar>();
+    new_model.velocityLimit         = model.velocityLimit.template cast<NewScalar>();
+    new_model.lowerPositionLimit    = model.lowerPositionLimit.template cast<NewScalar>();
+    new_model.upperPositionLimit    = model.upperPositionLimit.template cast<NewScalar>();
+
+    // I'll see if this is necessary
+    //typename ConfigVectorMap::const_iterator it;
+    //for (it = model.referenceConfigurations.begin();
+    //    it != model.referenceConfigurations.end(); it++ )
+    //{
+    //new_model.referenceConfigurations.insert(std::make_pair(it->first, it->second.template cast<NewScalar>()));
+    //}
+
+    // reserve vectors
+    new_model.inertias.resize(model.inertias.size());
+    new_model.jointPlacements.resize(model.jointPlacements.size());
+    new_model.joints.resize(model.joints.size());
+    new_model.frames.resize(model.frames.size());
+
+    /// copy into vectors
+    for(size_t k = 0; k < model.joints.size(); ++k)
+    {
+        new_model.inertias[k] = model.inertias[k].template cast<NewScalar>();
+        new_model.jointPlacements[k] = model.jointPlacements[k].template cast<NewScalar>();
+        new_model.joints[k] = model.joints[k].template cast<NewScalar>();
+    }
+    // the values in the for loop may be wrong, now rewrite NewScalars
+    for(size_t k = 0; k < model.frames.size(); ++k)
+    {
+        new_model.inertias[k] = InertiaTpl<NewScalar>(model.inertias[k].mass(), model.inertias[k].lever().template cast<NewScalar>(), model.inertias[k].inertia().template cast<NewScalar>());
+    }
+    
+    for(size_t k = 0; k < model.frames.size(); ++k)
+    {
+    new_model.frames[k] = model.frames[k].template cast<NewScalar>();
+    }
+
+}
+
+
+
 #endif

@@ -305,6 +305,8 @@ double calc_distance(Eigen::Matrix<T, 6, 1> current, double* goal){
 void initialize_output_file(){
     // create INT_BITS_FRAC_BITS directory if it doesn't exist
     std::string which_dir = EXPERIMENT_DIRECTORY + std::to_string(INT_BITS_GRAVITY) + "_" + std::to_string(FRAC_BITS_GRAVITY) + "_" + std::to_string(INT_BITS_FD) + "_" + std::to_string(FRAC_BITS_FD) + "/";
+    std::filesystem::create_directory("exp/");
+    std::filesystem::create_directory(EXPERIMENT_DIRECTORY);
     std::filesystem::create_directory(which_dir);
     DATA_FILE.open(which_dir + "data.csv");
     DATA_FILE << "time,q_1,q_2,q_3,q_4,q_5,q_6,qdot_1,qdot_2,qdot_3,qdot_4,qdot_5,qdot_6,u_1,u_2,u_3,u_4,u_5,u_6,\n";

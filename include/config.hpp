@@ -2,12 +2,11 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
-#include <filesystem>
 #include <FixedPoint/fixed_point.hpp> // for OverflowMode
 
 std::string EXPERIMENT_DIRECTORY = "exp/05-16/";
-const int INT_BITS_STANDARD = 8;
-const int FRAC_BITS_STANDARD = 8;
+const int INT_BITS_STANDARD = 31;
+const int FRAC_BITS_STANDARD = 31;
 
 const int INT_BITS_GRAVITY = 16;
 const int FRAC_BITS_GRAVITY = 16;
@@ -27,7 +26,7 @@ long long temp_time = std::time(0);
 const std::string current_path = std::filesystem::current_path().string();
 const std::string model_output_foldername = current_path + "/experiment_data/" + std::to_string(temp_time) + "/";
 const bool PINOCCHIO_VERBOSE = true;
-const bool USE_RENDER = false;
+const bool USE_RENDER = true;
 
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
 //typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;

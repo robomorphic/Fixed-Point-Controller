@@ -134,7 +134,11 @@ void model_cast(
     pinocchio::ModelTpl<NewScalar> &new_model
 ) {
     new_model = model.cast<NewScalar>();
+    std::cerr << "casting model to new model" << std::endl;
+    std::cerr << "model.nq: " << model.nq << std::endl;
+    std::cerr << "NewScalar: " << NewScalar(model.nq) << std::endl;
     new_model.nq = NewScalar(model.nq);
+    std::cerr << "new_model.nq: " << new_model.nq << std::endl;
     new_model.nv = NewScalar(model.nv);
     new_model.njoints = NewScalar(model.njoints);
     new_model.nbodies = NewScalar(model.nbodies);

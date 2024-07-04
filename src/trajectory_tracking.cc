@@ -270,7 +270,7 @@ int main(int argc, const char** argv) {
     std::cerr << "pinocchio_model: " << pinocchio_model << std::endl;
     std::cerr << "pinocchio_model_basic: " << pinocchio_model_basic << std::endl;
 
-    pinocchio_model_gravity = pinocchio_model_basic.cast<exp_type_gravity>();
+    pinocchio_model_gravity = pinocchio_model_basic.cast<exp_type_fd>();
     //model_cast(pinocchio_model_basic, pinocchio_model_gravity);
     std::cerr << "pinocchio_model_gravity: " << pinocchio_model_gravity << std::endl;
 

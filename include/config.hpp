@@ -27,7 +27,7 @@ long long temp_time = std::time(0);
 const std::string current_path = std::filesystem::current_path().string();
 const std::string model_output_foldername = current_path + "/experiment_data/" + std::to_string(temp_time) + "/";
 const bool PINOCCHIO_VERBOSE = true;
-const bool USE_RENDER = true;
+const bool USE_RENDER = false;
 
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
 //typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;

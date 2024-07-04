@@ -51,8 +51,6 @@ RUN curl -L https://github.com/stack-of-tasks/pinocchio/archive/refs/tags/v2.7.0
 RUN tar -xvzf pinocchio-source-2.7.0.tar.gz
 RUN cd pinocchio-2.7.0; mkdir build; cd build; cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_PYTHON_INTERFACE=OFF; make; make install
 
-#RUN ls /usr/local; echo aasdqweqwedfgjghj
-
 
 RUN git clone https://github.com/alpylmz/mujoco_simulation
 # Install fixedpoint library

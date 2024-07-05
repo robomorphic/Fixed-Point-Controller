@@ -263,55 +263,53 @@ int main(int argc, const char** argv) {
     // because of a bug, pinocchio::ModelTpl<exp_type> cannot be used
     // Therefore we are creating the robot model with double type and then casting it to exp_type
     pinocchio::urdf::buildModel(urdf_filename, pinocchio_model_basic);
-    std::cerr << "pinocchio_model_basic: " << pinocchio_model_basic << std::endl;
+    //std::cerr << "pinocchio_model_basic: " << pinocchio_model_basic << std::endl;
 
     pinocchio_model         = pinocchio_model_basic.cast<exp_type>();
     //model_cast(pinocchio_model_basic, pinocchio_model);
-    std::cerr << "pinocchio_model: " << pinocchio_model << std::endl;
-    std::cerr << "pinocchio_model_basic: " << pinocchio_model_basic << std::endl;
+    //std::cerr << "pinocchio_model: " << pinocchio_model << std::endl;
+    //std::cerr << "pinocchio_model_basic: " << pinocchio_model_basic << std::endl;
 
     pinocchio_model_gravity = pinocchio_model_basic.cast<exp_type_fd>();
     //model_cast(pinocchio_model_basic, pinocchio_model_gravity);
-    std::cerr << "pinocchio_model_gravity: " << pinocchio_model_gravity << std::endl;
+    //std::cerr << "pinocchio_model_gravity: " << pinocchio_model_gravity << std::endl;
 
     pinocchio_model_fd      = pinocchio_model_basic.cast<exp_type_fd>();
     //model_cast(pinocchio_model_basic, pinocchio_model_fd);
-    std::cerr << "pinocchio_model_fd: " << pinocchio_model_fd << std::endl;
+    //std::cerr << "pinocchio_model_fd: " << pinocchio_model_fd << std::endl;
 
     if(PINOCCHIO_VERBOSE) print_model(pinocchio_model_basic, pinocchio_model, pinocchio_model_fd);
     //std::cout << "model name: " << pinocchio_model.name << std::endl;
 
     // create a dummy model
-    pinocchio::ModelTpl<FixedPoint<31, 31>> dummy_model;
-    model_cast(pinocchio_model, dummy_model);
-    std::cerr << "dummy_model: " << dummy_model << std::endl;
+    //pinocchio::ModelTpl<FixedPoint<31, 31>> dummy_model;
+    //model_cast(pinocchio_model, dummy_model);
+    //std::cerr << "dummy_model: " << dummy_model << std::endl;
 
     // print "inertias" of these models
-    std::cerr << "inertia: " << pinocchio_model.inertias[0] << std::endl;
-    std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[0] << std::endl;
-    std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[0] << std::endl;
-    std::cerr << "2:" << std::endl;
-    std::cerr << "inertia: " << pinocchio_model.inertias[1] << std::endl;
-    std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[1] << std::endl;
-    std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[1] << std::endl;
-    std::cerr << "3:" << std::endl;
-    std::cerr << "inertia: " << pinocchio_model.inertias[2] << std::endl;
-    std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[2] << std::endl;
-    std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[2] << std::endl;
-    std::cerr << "4:" << std::endl;
-    std::cerr << "inertia: " << pinocchio_model.inertias[3] << std::endl;
-    std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[3] << std::endl;
-    std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[3] << std::endl;
-    std::cerr << "5:" << std::endl;
-    std::cerr << "inertia: " << pinocchio_model.inertias[4] << std::endl;
-    std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[4] << std::endl;
-    std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[4] << std::endl;
-    std::cerr << "6:" << std::endl;
-    std::cerr << "inertia: " << pinocchio_model.inertias[5] << std::endl;
-    std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[5] << std::endl;
-    std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[5] << std::endl;
-
-    // cast doesn't work for Ubuntu with some systems for some reason
+    //std::cerr << "inertia: " << pinocchio_model.inertias[0] << std::endl;
+    //std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[0] << std::endl;
+    //std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[0] << std::endl;
+    //std::cerr << "2:" << std::endl;
+    //std::cerr << "inertia: " << pinocchio_model.inertias[1] << std::endl;
+    //std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[1] << std::endl;
+    //std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[1] << std::endl;
+    //std::cerr << "3:" << std::endl;
+    //std::cerr << "inertia: " << pinocchio_model.inertias[2] << std::endl;
+    //std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[2] << std::endl;
+    //std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[2] << std::endl;
+    //std::cerr << "4:" << std::endl;
+    //std::cerr << "inertia: " << pinocchio_model.inertias[3] << std::endl;
+    //std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[3] << std::endl;
+    //std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[3] << std::endl;
+    //std::cerr << "5:" << std::endl;
+    //std::cerr << "inertia: " << pinocchio_model.inertias[4] << std::endl;
+    //std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[4] << std::endl;
+    //std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[4] << std::endl;
+    //std::cerr << "6:" << std::endl;
+    //std::cerr << "inertia: " << pinocchio_model.inertias[5] << std::endl;
+    //std::cerr << "inertia gravity: " << pinocchio_model_gravity.inertias[5] << std::endl;
+    //std::cerr << "inertia fd: " << pinocchio_model_fd.inertias[5] << std::endl;
 
     pinocchio_data          = pinocchio::DataTpl<exp_type>(pinocchio_model);
     //std::cerr << "pinocchio_data: " << pinocchio_data << std::endl;

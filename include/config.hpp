@@ -6,11 +6,11 @@
 #include <FixedPoint/fixed_point.hpp> // for OverflowMode
 
 std::string EXPERIMENT_DIRECTORY = "exp/05-16/";
-const int INT_BITS_STANDARD = 31;
-const int FRAC_BITS_STANDARD = 31;
+const int INT_BITS_STANDARD = 15;
+const int FRAC_BITS_STANDARD = 15;
 
-const int INT_BITS_GRAVITY = 16;
-const int FRAC_BITS_GRAVITY = 16;
+const int INT_BITS_GRAVITY = 15;
+const int FRAC_BITS_GRAVITY = 15;
 
 const int INT_BITS_FD = 12;
 const int FRAC_BITS_FD = 12;
@@ -31,7 +31,7 @@ const bool USE_RENDER = false;
 
 OverflowMode OVERFLOW_MODE = OverflowMode::CLAMP;
 //typedef FixedPoint<INT_BITS_STANDARD, FRAC_BITS_STANDARD> exp_type;
-typedef FixedPoint<INT_BITS_FD, FRAC_BITS_FD> exp_type_gravity;
+typedef FixedPoint<INT_BITS_GRAVITY, FRAC_BITS_GRAVITY> exp_type_gravity;
 typedef FixedPoint<INT_BITS_FD, FRAC_BITS_FD> exp_type_fd;
 typedef FixedPoint<INT_BITS_ACT_ON, FRAC_BITS_ACT_ON> exp_type_act_on;
 typedef double exp_type;

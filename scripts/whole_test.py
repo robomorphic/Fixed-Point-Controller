@@ -63,7 +63,7 @@ struct {{
     
     // This is tolerance for the joint space
     const double GOAL_TOLERANCE = 0.1;
-    const double EXP_HARD_STOP_TIME = 10.0;
+    const double EXP_HARD_STOP_TIME = 40.0;
 }} TrajectoryVars;
 
 #endif

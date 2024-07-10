@@ -29,4 +29,6 @@ experiment_plots/*
 experiment_plots_old/*
 experiment_ranges/*
 experiment_ratios/*
+experiment_dataframes/*
+experiment_debug_data/*
 

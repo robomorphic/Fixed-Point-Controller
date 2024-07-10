@@ -61,6 +61,16 @@ def analyse(json_file: str):
     del data['fractional_bits_gravity']
     del data['integer_bits_fd']
     del data['fractional_bits_fd']
+
+    # remove "fixed_point_Minv_output" and original_data_Minv_output keys from each element if it exists
+    for key1 in data.keys():
+        # does "fixed_point_Minv_output" exist?
+        if "fixed_point_Minv_output" in data[key1]:
+            del data[key1]["fixed_point_Minv_output"]
+        if "original_data_Minv_output" in data[key1]:
+            del data[key1]["original_data_Minv_output"]
+
+
     # remove the small_resolution keys
     for key1 in data.keys():
         # key1 is the iteration number
@@ -69,19 +79,47 @@ def analyse(json_file: str):
             for key3 in data[key1][key2].keys():
                 data[key1][key2][key3] = list_string_to_matrix_v2(data[key1][key2][key3]['big_resolution'])
 
-    data_template = data['0'].copy()
-    
-    # now we can analyse the data
-    # sum all values over iterations to the template
+    # for some reason first key "0" can give incorrect output, so I'll remove it
+    del data['0']
+
+    data_template = data['1'].copy()
+
+    # After here every key and data is a mess
+    # I'll convert this to a dataframe to make it easier to analyse
+    data_df = pd.DataFrame(columns=['iteration', 'joint', 'variable', 'value'])
+    # For an efficient dataframe, I'll create a list of dictionaries
+    data_list = []
     for key1 in data.keys():
         for key2 in data[key1].keys():
             for key3 in data[key1][key2].keys():
-                data_template[key2][key3] += data[key1][key2][key3]
-    
-    # calculate the mean
-    for key1 in data_template.keys():
-        for key2 in data_template[key1].keys():
-            data_template[key1][key2] /= len(data.keys())
+                data_list.append({
+                    'iteration': int(key1),
+                    'joint': int(key2),
+                    'variable': key3,
+                    'value': data[key1][key2][key3]
+                })
+    data_df = pd.DataFrame(data_list)
+
+
+    # save it
+    os.makedirs('experiment_dataframes', exist_ok=True)
+    data_df.to_csv('experiment_dataframes/data.csv', index=False)
+    print('The dataframe is saved to experiment_dataframes/data.csv')
+
+    # we need to calculate the means of each key
+    # So, firstly collect the unique list of "variable" column values
+    variables = data_df['variable'].unique()
+    # Then, collect unique variables of "joint_id"
+    joints = data_df['joint'].unique()
+
+    for joint in joints:
+        for variable in variables:
+            # get the data for this joint and variable
+            data_temp = data_df[(data_df['joint'] == joint) & (data_df['variable'] == variable)]
+            # calculate the mean
+            mean = np.mean(data_temp['value'].values)
+            # save it to data_template
+            data_template[str(joint)][variable] = mean
 
     # save means
     os.makedirs('experiment_means', exist_ok=True)
@@ -89,7 +127,25 @@ def analyse(json_file: str):
         json.dump(data_template, f, indent=4, cls=NumpyEncoder)
     print('The mean data is saved to experiment_means/means.json')
 
-    range_template = deepcopy(data['0'].copy())
+    # Now the problem is sometimes I may want to debug or see the data myself
+    # But it is a bit hard
+    # So, For every joint and every variable, I'll save the data to a separate file
+    for joint in joints:
+        for variable in variables:
+            data_temp = data_df[(data_df['joint'] == joint) & (data_df['variable'] == variable)]
+            # save it
+            os.makedirs('experiment_debug_data', exist_ok=True)
+            # if there are illegal characters in the variable name, replace them
+            variable = variable.replace('/', '_')
+            variable = variable.replace(' ', '')
+            # also while printing numpy arrays to csv, sometimes only the first element is printed
+            # so, I'll convert the numpy array to a list
+            data_temp['value'] = data_temp['value'].apply(lambda x: x.tolist())
+            data_temp.to_csv(f'experiment_debug_data/joint_{joint}_variable_{variable}.csv', index=False)
+            # Just for some debugging, print the sum of the values for this joint and variable
+            #print(f'Joint {joint}, Variable {variable}, Sum: {np.sum(data_temp["value"].values)}')
+
+    range_template = deepcopy(data['1'].copy())
     # calculate the range
     for key1 in data.keys():
         for key2 in data[key1].keys():
@@ -98,18 +154,18 @@ def analyse(json_file: str):
                     "min": np.Inf,
                     "max": np.NINF
                 }
-
-    for key1 in data.keys():
-        for key2 in data[key1].keys():
-            for key3 in data[key1][key2].keys():
-                try:
-                    range_template[key2][key3]['min'] = min(range_template[key2][key3]['min'], np.min(data[key1][key2][key3]))
-                    range_template[key2][key3]['max'] = max(range_template[key2][key3]['max'], np.max(data[key1][key2][key3]))
-                except Exception as e:
-                    print("exception: ", e)
-                    print("Error in key1: ", key1, " key2: ", key2, " key3: ", key3)
-                    print("Data: ", data[key1][key2][key3])
-                    print("Range: ", range_template[key2][key3])
+    
+    for joint in joints:
+        for variable in variables:
+            data_temp = data_df[(data_df['joint'] == joint) & (data_df['variable'] == variable)]
+            # calculate the range
+            # iterate over every row            
+            for index, row in data_temp.iterrows():
+                min_value = np.min(row['value'])
+                max_value = np.max(row['value'])
+                range_template[str(joint)][variable]['min'] = min(range_template[str(joint)][variable]['min'], min_value)
+                range_template[str(joint)][variable]['max'] = max(range_template[str(joint)][variable]['max'], max_value)
+            
 
     # save the data
     os.makedirs('experiment_ranges', exist_ok=True)
@@ -183,6 +239,14 @@ def analyse(json_file: str):
     del data['integer_bits_fd']
     del data['fractional_bits_fd']
 
+    # remove "fixed_point_Minv_output" and original_data_Minv_output keys from each element if it exists
+    for key1 in data.keys():
+        # does "fixed_point_Minv_output" exist?
+        if "fixed_point_Minv_output" in data[key1]:
+            del data[key1]["fixed_point_Minv_output"]
+        if "original_data_Minv_output" in data[key1]:
+            del data[key1]["original_data_Minv_output"]
+
     for key1 in data.keys():
         # key1 is the iteration number
         for key2 in data[key1].keys():
@@ -190,6 +254,21 @@ def analyse(json_file: str):
             for key3 in data[key1][key2].keys():
                 for key4 in data[key1][key2][key3].keys():
                     data[key1][key2][key3][key4] = list_string_to_matrix_v2(data[key1][key2][key3][key4])
+
+    # Convert the data to a dataframe
+    data_df = pd.DataFrame(columns=['iteration', 'joint', 'variable', 'value'])
+    # For an efficient dataframe, I'll create a list of dictionaries
+    data_list = []
+    for key1 in data.keys():
+        for key2 in data[key1].keys():
+            for key3 in data[key1][key2].keys():
+                data_list.append({
+                    'iteration': int(key1),
+                    'joint': int(key2),
+                    'variable': key3,
+                    'value': data[key1][key2][key3]
+                })
+    data_df = pd.DataFrame(data_list)
 
     # now, I'll do a different thing. 
     # Read every element in every joint, if it is a matrix or vector, just flatten it
@@ -205,17 +284,20 @@ def analyse(json_file: str):
             for key3 in data[key1][key2].keys():
                 ratios_template[key2][key3] = []
 
-    for key1 in data.keys():
-        for key2 in data[key1].keys():
-            for key3 in data[key1][key2].keys():
-                ratio_temp = (data[key1][key2][key3]["small_resolution"] - data[key1][key2][key3]["big_resolution"]) / data[key1][key2][key3]["big_resolution"]
+    for joint in joints:
+        for variable in variables:
+            data_temp = data_df[(data_df['joint'] == joint) & (data_df['variable'] == variable)]
+            # calculate the ratio
+            for index, row in data_temp.iterrows():
+                ratio_temp = (row['value']['small_resolution'] - row['value']['big_resolution']) / row['value']['big_resolution']
                 # if zero division occurred, append nothing
                 if np.isnan(ratio_temp).any():
                     # remove nan values
                     ratio_temp = ratio_temp[~np.isnan(ratio_temp)]
                 # remove inf values
                 ratio_temp = ratio_temp[~np.isinf(ratio_temp)]
-                ratios_template[key2][key3].extend(ratio_temp.flatten())
+                ratios_template[str(joint)][variable].extend(ratio_temp.flatten())
+
     
     # save ratios_template for debugging
     os.makedirs('experiment_ratios', exist_ok=True)
@@ -273,6 +355,7 @@ if __name__ == "__main__":
     # I assume that there will be only one summary file as I'll only analyse the ranges for double precision
     if len(summary_files) != 1:
         raise ValueError('There should be only one summary file')
+    print("Analyzing the summary file: ", summary_files[0])
     
     analyse(summary_files[0])
     

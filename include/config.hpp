@@ -2,21 +2,20 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
-#include <filesystem>
 #include <FixedPoint/fixed_point.hpp> // for OverflowMode
 
 std::string EXPERIMENT_DIRECTORY = "exp/05-16/";
-const int INT_BITS_STANDARD = 15;
-const int FRAC_BITS_STANDARD = 15;
+const int INT_BITS_STANDARD = 31;
+const int FRAC_BITS_STANDARD = 31;
 
 const int INT_BITS_GRAVITY = 15;
 const int FRAC_BITS_GRAVITY = 15;
 
-const int INT_BITS_FD = 12;
-const int FRAC_BITS_FD = 12;
+const int INT_BITS_FD = 10;
+const int FRAC_BITS_FD = 10;
 
-const int INT_BITS_ACT_ON = 12; // let's test uniform precision for now
-const int FRAC_BITS_ACT_ON = 12;
+const int INT_BITS_ACT_ON = 10; // let's test uniform precision for now
+const int FRAC_BITS_ACT_ON = 10;
 
 const std::string urdf_filename = std::string("models/panda.urdf");
 
@@ -58,7 +57,7 @@ struct {
     
     // This is tolerance for the joint space
     const double GOAL_TOLERANCE = 0.1;
-    const double EXP_HARD_STOP_TIME = 10.0;
+    const double EXP_HARD_STOP_TIME = 40.0;
 } TrajectoryVars;
 
 #endif

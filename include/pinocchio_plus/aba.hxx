@@ -171,7 +171,7 @@ namespace pinocchioPass
 
       pass1_file << "qj: " << std::endl << qj << std::endl;
 
-      FixedPoint<1, 8> sin, cos;
+      Scalar sin, cos; // change the type here to change the precision in sin/cos
       SINCOS(qj, &sin, &cos); // For now sincos is calculated with doubles
       // Please see: Fixed-Point Trigonometric Functions on FPGAs
       
@@ -180,45 +180,34 @@ namespace pinocchioPass
       //auto jdata_M = TransformRevoluteTpl<FixedPoint1, Options, 2>(sin.cast<FixedPoint1>(), cos.cast<FixedPoint1>());
       pass1_file << "jdata_m_sin: " << std::endl << sin << std::endl;
       pass1_file << "jdata_m_cos: " << std::endl << cos << std::endl;
-      auto jdata_M = TransformRevoluteTpl<Scalar, Options, 2>(sin.cast<Scalar>(), cos.cast<Scalar>());
+      auto jdata_M = TransformRevoluteTpl<Scalar, Options, 2>(sin, cos);
       
       // calculate the vector of relative joint placements (w.r.t. the body parent)
       const JointIndex & parent = model.parents[i];
+      data.liMi[i] = model.jointPlacements[i] * jdata_M;
 
-      //data.liMi[i] = model.jointPlacements[i] * jdata_M;
-      SE3Tpl<FixedPoint2, Options> model_jointPlacements_i_cast = SE3Tpl<FixedPoint2, Options>(model.jointPlacements[i].rotation().template cast<FixedPoint2>(), model.jointPlacements[i].translation().template cast<FixedPoint2>());
       pass1_file << "model_jointPlacements_i_rotation: " << std::endl;
-      pass1_file << model_jointPlacements_i_cast.rotation() << std::endl;
+      pass1_file << model.jointPlacements[i].rotation() << std::endl;
 
       pass1_file << "model_jointPlacements_i_translation: " << std::endl;
       pass1_file << model.jointPlacements[i].translation() << std::endl;
-      auto jdata_M_cast = TransformRevoluteTpl<FixedPoint2, Options, 2>(sin.cast<FixedPoint2>(), cos.cast<FixedPoint2>());
-      auto data_liMi_i_cast = model_jointPlacements_i_cast * jdata_M_cast;
-      pass1_file << "data_liMi_i_cast: " << std::endl;
-      pass1_file << data_liMi_i_cast.rotation() << std::endl;
 
       pass1_file << "Relative_joint_placement_rotation: " << std::endl;
-      pass1_file << data_liMi_i_cast.rotation() << std::endl;
+      pass1_file << data.liMi[i].rotation() << std::endl;
       pass1_file << "Relative_joint_placement_translation: " << std::endl;
-      pass1_file << data_liMi_i_cast.translation() << std::endl;
-
-      data.liMi[i] = data_liMi_i_cast.template cast<Scalar>();
-
-      // make data.oMi[i] FixedPoint2
-      auto data_oMi_i_cast = data_liMi_i_cast.template cast<FixedPoint2>();
-      auto data_oMi_parent_cast = data.oMi[parent].template cast<FixedPoint2>();
+      pass1_file << data.liMi[i].translation() << std::endl;
 
       // calculate the absolute joint placements
       if (parent>0)
-        data_oMi_i_cast = data_oMi_parent_cast * data_liMi_i_cast;
+        data.oMi[i] = data.oMi[parent] * data.liMi[i];
       else
-        data_oMi_i_cast = data_liMi_i_cast;
+        data.oMi[i] = data.liMi[i];
       pass1_file << "Absolute_joint_placement_rotation: " << std::endl;
-      pass1_file << data_oMi_i_cast.rotation() << std::endl;
+      pass1_file << data.oMi[i].rotation() << std::endl;
       pass1_file << "Absolute_joint_placement_translation: " << std::endl;
-      pass1_file << data_oMi_i_cast.translation() << std::endl;
+      pass1_file << data.oMi[i].translation() << std::endl;
 
-      data.oMi[i] = data_oMi_i_cast.template cast<Scalar>();
+      data.oMi[i] = data.oMi[i].template cast<Scalar>();
 
       // Inertia matrix of the "subtree" expressed as dense matrix
       // I currently don't know where the inertias are calculated, but I know it is pretty easy to calculate them

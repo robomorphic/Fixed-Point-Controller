@@ -7,6 +7,10 @@ const int IT_MAX = 1000;
 const double DT = 1e-1;
 const double damp = 1e-6;
 
+#define DIM6 6
+#define JJt_SIZE DIM6
+#define REG_EPS 1e-12  // Regularization for non-positive pivots
+
 typedef struct SE3{
     double translation[3];
     double rotation[3][3];
@@ -34,6 +38,10 @@ typedef struct Vector6d{
 typedef struct Vectorxd{
     double data[NU];
 } VectorXd;
+
+typedef struct Matrix6x6{
+    double data[6][6];
+} Matrix6x6;
 
 typedef struct SE3s {
     SE3 SE3[NU];
